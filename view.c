@@ -30,8 +30,17 @@ typedef struct{
     int board[]; // tablero dinamico
 }GameState;
 
+typedef struct {
+    sem_t print_needed; // Se usa para indicarle a la vista que hay cambios por imprimir
+    sem_t print_done; // Se usa para indicarle al master que la vista terminó de imprimir
+    sem_t C; // Mutex para evitar inanición del master al acceder al estado
+    sem_t D; // Mutex para el estado del juego
+    sem_t E; // Mutex para la siguiente variable
+    unsigned int F; // Cantidad de jugadores leyendo el estado
+} GameSync;
+
 int main() {
-    int game_state_fd = shm_open("/game_state", O_RDWR, 0666);
+    int game_state_fd = shm_open("/game_state", O_RDONLY, 0666);
     if(game_state_fd == -1){
         perror("shm_open");
         exit(EXIT_FAILURE);
@@ -49,37 +58,52 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    bool player_found;
-    while (1) {
-        printf("pos_x: %d   pos_y: %d\n", game->players[0].pos_x, game->players[0].pos_y);
-     
+    int shm_sync_fd = shm_open("/game_sync", O_RDWR, 0666);
+    if (shm_sync_fd == -1) {
+        perror("shm_open sync");
+        exit(EXIT_FAILURE);
+    }
+
+    GameSync *sync = mmap(NULL, sizeof(GameSync), PROT_READ | PROT_WRITE, MAP_SHARED, shm_sync_fd, 0);
+    if (sync == MAP_FAILED) {
+        perror("mmap sync");
+        exit(EXIT_FAILURE);
+    }
+
+    // int width  = game->width;
+    // int height = game->height;
+    // int *board = game->board;
+    // int num_players = game->num_players;
+    // int body_x[width * height];
+    // int body_y[width * height];
+    // int body_lengths[num_players];
+    // for(int i = 0; i < num_players; i++) {
+    //     body_lengths[i] = 0;
+    // }
+    // int bodies_x[num_players][width * height];
+    // int bodies_y[num_players][width * height];
+
+    int aux_board[game->width * game->height];
+
+    while (!game->game_over) {
+        sem_wait(&(sync->print_needed));
+        
         // Imprimir el tablero
         for (int i = 0; i < game->height; i++) {
             for (int j = 0; j < game->width; j++) {
                 int cell = game->board[i * game->width + j];
-                
-                player_found = FALSE;
-                for(int p = 0; p < game->num_players; p++){
-                    if(i == game->players[p].pos_y && j == game->players[p].pos_x){
-                        player_found = TRUE;
-                        break;
-                    }
-                }
-
-                if (cell < 0 || player_found) {
-                    // La "cabeza" del jugador
-                    printf("P ");
-                } else if (cell > 0) {
+                int index = i * game->width + j;
+                if (cell > 0) {
                     // Recompensa
                     printf("%d ", cell); 
                 } else {
-                    // Celda vacía
-                    printf(". ");
+                    // Cabeza
+                    printf("P ");
                 }
             }
-            printf("\n");
+            printf("\n");                      
         }
-        usleep(500000);
+        sem_post(&(sync->print_done));
         printf("\n");
     }
 
