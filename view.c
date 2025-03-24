@@ -70,21 +70,6 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    // int width  = game->width;
-    // int height = game->height;
-    // int *board = game->board;
-    // int num_players = game->num_players;
-    // int body_x[width * height];
-    // int body_y[width * height];
-    // int body_lengths[num_players];
-    // for(int i = 0; i < num_players; i++) {
-    //     body_lengths[i] = 0;
-    // }
-    // int bodies_x[num_players][width * height];
-    // int bodies_y[num_players][width * height];
-
-    int aux_board[game->width * game->height];
-
     while (!game->game_over) {
         sem_wait(&(sync->print_needed));
         
@@ -92,12 +77,12 @@ int main() {
         for (int i = 0; i < game->height; i++) {
             for (int j = 0; j < game->width; j++) {
                 int cell = game->board[i * game->width + j];
-                int index = i * game->width + j;
                 if (cell > 0) {
                     // Recompensa
                     printf("%d ", cell); 
                 } else {
-                    // Cabeza
+                    // Cabeza y cuerpo -> va a cambiar cuando el master marque bien q serpiente
+                    //queda en que lado
                     printf("P ");
                 }
             }
