@@ -100,6 +100,7 @@ int main(){
             exit(EXIT_FAILURE);
         }
 
+        //this delay should be synched to the game delay
         usleep(200000);
     }
     
