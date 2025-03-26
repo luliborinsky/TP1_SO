@@ -78,10 +78,10 @@ int main(){
         sem_post(&sync->sig_var);
         sem_post(&sync->master_utd);
 
-        // Leer el estado del juego
+        // read game_state
         bool still_running = !game->game_over; 
 
-        // Liberar el acceso al estado
+        // release game_state
         sem_wait(&sync->sig_var);
         sync->readers--;
         if (sync->readers == 0) {
@@ -89,10 +89,8 @@ int main(){
         }
         sem_post(&sync->sig_var);
 
-        if (!still_running) {
-            // If the game is over, release access before exiting
-            break;
-        }
+        // If the game is over, release access before exiting
+        if (!still_running) break;
 
         move = rand() % 8;
         if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
@@ -100,7 +98,9 @@ int main(){
             exit(EXIT_FAILURE);
         }
 
-        //this delay should be synched to the game delay
+        //this sleep should be synched to the game delay
+        //if absent the pipe between player and master fills up and causes a deadlock when the game finishes
+        //master ends and waits for player but player is waiting to be read (i think)
         usleep(200000);
     }
     
