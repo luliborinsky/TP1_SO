@@ -91,21 +91,16 @@ int main(){
 
         if (!still_running) {
             // If the game is over, release access before exiting
-            // sem_wait(&sync->sig_var);
-            // sync->readers--;
-            // if (sync->readers == 0) {
-            //     sem_post(&sync->game_state_change);
-            // }
-            // sem_post(&sync->sig_var);
             break;
         }
-        
 
         move = rand() % 8;
         if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
             perror("write movimiento");
             exit(EXIT_FAILURE);
         }
+
+        usleep(200000);
     }
     
     return 0;

@@ -16,4 +16,4 @@ clean:
 	rm master.out view.out player.out
 
 run: all
-	./master.out -p player.out -v view.out
+	./ChompChamps_amd -p player.out -v view.out

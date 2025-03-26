@@ -190,10 +190,11 @@ int main (int argc, char ** argv){
     
     //create SHMs
     GameState * game = createSHM("/game_state", sizeof(GameState), 0644); //size of GameState is defined on createSHM
-    GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
+    // GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
 
     arg_handler(argc, argv, game);
 
+    //comentado porque estoy probando con ChompChamps_amd
     return 0;
 }
 
