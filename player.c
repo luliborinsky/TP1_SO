@@ -16,7 +16,7 @@ typedef struct Player{
     unsigned int v_moves; // Cantidad de solicitudes de movimientos válidas realizadas
     unsigned short pos_x, pos_y; // Coordenadas x e y en el tablero
     pid_t player_pid; // Identificador de proceso
-    bool can_play; // Indica si el jugador tiene movimientos válidos disponibles
+    bool is_blocked; // Indica si el jugador tiene movimientos bloqueados disponibles
 } Player;    
 
 typedef struct{
@@ -38,7 +38,7 @@ typedef struct {
     
 
 int main(){
-    int game_state_fd = shm_open("/game_state", O_RDONLY, 0666);
+    int game_state_fd = shm_open("/game_state", O_RDONLY, 0);
     if (game_state_fd == -1){
         perror("shm_open game_state");
         exit(EXIT_FAILURE);
@@ -54,7 +54,7 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    int shm_sync_fd = shm_open("/game_sync", O_RDWR, 0666);
+    int shm_sync_fd = shm_open("/game_sync", O_RDWR, 0);
     if (shm_sync_fd == -1) {
         perror("shm_open sync");
         exit(EXIT_FAILURE);

@@ -11,15 +11,11 @@
 #define MAX_ARG_COUNT 23
 #define MIN_BOARD_SIZE 10
 #define MAX_PLAYERS 9
+#define DEFAULT_WIDTH 10
+#define DEFAULT_HEIGHT 10
+#define DEFAULT_DELAY 200
+#define DEFAULT_TIMEOUT 10
 
-typedef enum{
-    ARG_WIDTH, // -w 
-    ARG_HEIGHT, // -h
-    ARG_TIMEOUT, // -t
-    ARG_DELAY, // -d
-    ARG_VIEW, // -v
-    ARG_PLAYERS // -p
-} ArgType;
 
 typedef struct Player{
     char name[16]; // Nombre del jugador
@@ -28,7 +24,7 @@ typedef struct Player{
     unsigned int v_moves; // Cantidad de solicitudes de movimientos válidas realizadas
     unsigned short pos_x, pos_y; // Coordenadas x e y en el tablero
     pid_t player_pid; // Identificador de proceso
-    bool can_play; // Indica si el jugador tiene movimientos válidos disponibles
+    bool is_blocked; // Indica si el jugador tiene movimientos bloqueados
 } Player;
 
 typedef struct{
@@ -78,97 +74,128 @@ void * createSHM(char * name, size_t size, mode_t mode){
     return p;
 }
 
-int process_players(char ** argv, int argc, int idx, GameState * game_state){
-    int i = idx;
-    if(argv[i][0] == '-' || argv[i][0] == ' ' || argv[i][0] == '\n'){
-        perror("bad usage of -p [players]");
-        exit(EXIT_FAILURE);
-    }
-
-    while(argv[i][0] !=  '-' && i < argc){
-        //initialize players
-        printf("initializing players");
-        i++;
-    }
-
-    // Player *p = &game_state->players[game_state->num_players];
+void process_players(char ** argv, int argc, int idx, GameState * game){
+    game->num_players = 0;
     
-    //     p->score = 0;
-    //     p->inv_moves = 0;
-    //     p->v_moves = 0;
-    //     p->can_play = true;
-       
-    //     p->pos_x = rand() % game_state->width;
-    //     p->pos_y = rand() % game_state->height;
-
-    //     printf("Jugador %d inicializado: %s (posición: %d,%d)\n", 
-    //            game_state->num_players + 1, argv[i], p->pos_x, p->pos_y);
-
-    //     game_state->num_players++;
-    //     i++;
-    
-
-    // if (game_state->num_players == 0) {
-    //     perror("Error: Se requiere al menos un jugador\n");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    return i; 
+    for (int i = idx; i < argc && argv[i][0] != '-'; i++) {
+        if (game->num_players >= MAX_PLAYERS) {
+            perror("Demasiados jugadores");
+            exit(EXIT_FAILURE);
+        }
+        
+        Player *p = &game->players[game->num_players];
+        strncpy(p->name, argv[i], sizeof(p->name) - 1);
+        p->name[sizeof(p->name) - 1] = '\0';
+        p->score = 0;
+        p->inv_moves = 0;
+        p->v_moves = 0;
+        p->is_blocked = false;
+        
+        printf("Jugador inicializado: %s\n", p->name);
+        game->num_players++;
+    }
 }
 
 
-void arg_handler(int argc, char ** argv, GameState * game_state){
-    if(argc > MAX_ARG_COUNT){
-        perror("too many arguments");
+void arg_handler(int argc, char ** argv, GameState * game){
+    int opt;
+    opterr = 0;
+    memset(game, 0, sizeof(GameState));
+    game->width = DEFAULT_WIDTH;
+    game->height = DEFAULT_HEIGHT;
+    char *view_path = NULL;
+    //game->timeout = DEFAULT_TIMEOUT;
+    //game->delay = DEFAULT_DELAY;
+
+
+    while((opt = getopt(argc, argv, "w:h:t:d:p:v:")) != -1){
+        switch(opt){
+            case 'w':
+                game->width = atoi(optarg);
+                if(game->width < MIN_BOARD_SIZE){
+                    perror("board size too small");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+            case 'h':
+                game->height = atoi(optarg);
+                if(game->height < MIN_BOARD_SIZE){
+                    perror("board size too small");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+
+            // case 't':
+            //     game->timeout = atoi(optarg);
+            //     if(game->timeout <= 0){
+            //         perror("timeout must be positive");
+            //         exit(EXIT_FAILURE);
+            //     }
+            //     break;
+            // case 'd':
+            //     game->delay = atoi(optarg);
+            //     if(game->delay <= 0){
+            //         perror("delay must be positive");
+            //         exit(EXIT_FAILURE);
+            //     }
+            //     break;
+            case 'p':
+                process_players(argv, argc, optind -1, game);
+                break;
+
+            case 'v':
+                view_path = optarg;
+                if(access(view_path, X_OK) == -1){
+                    perror("error to access view");
+                    exit(EXIT_FAILURE);
+                }
+                printf("Vista inicializada: %s\n", view_path);
+                break;
+                
+            case '?':
+                if(optopt == 'w' || optopt == 'h' || optopt == 't' || optopt == 'd' || optopt == 'p'){
+                    perror("option requires an argument");
+                } else {
+                    perror("unknown option");
+                }
+                exit(EXIT_FAILURE);
+
+            default:
+                perror("bad usage");
+                exit(EXIT_FAILURE);
+        }   
+    }
+    if(game->width == 0 || game->height == 0){
+        perror("must specify board size");
         exit(EXIT_FAILURE);
     }
-
-    if(argc < 2){
-        perror("Error: At least one player must be specified using -p.");
+    if(game->num_players == 0){
+        perror("must specify number of players");
         exit(EXIT_FAILURE);
     }
+    
 
-    int i = 1;
-    while(i < argc){
-        if(strcmp(argv[i], "-p") == 0){
-            i = process_players(argv, argc, i + 1, game_state);
-        }
-        if(strcmp(argv[i], "-v") == 0){
-            
-        }
-        // if(strcmp(argv[i], "-w") == 0){
-            
-        // }
-        // if(strcmp(argv[i], "-h") == 0){
-            
-        // }
-        // if(strcmp(argv[i], "-d") == 0){
-            
-        // }
-        // if(strcmp(argv[i], "-t") == 0){
-            
-        // }
+}
+
+bool test_player_binary(const char *player_path) {
+    if(access(player_path, X_OK) == -1) {
+        perror("error to access player");
+        return false;
     }
+    return true;
 }
 
 int main (int argc, char ** argv){
+    test_player_binary("player.out");
+    
     //create SHMs
-    GameState * game_state = createSHM("/game_state", sizeof(GameState), 0644); //size of GameState is defined on createSHM
+    GameState * game = createSHM("/game_state", sizeof(GameState), 0644); //size of GameState is defined on createSHM
     GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
 
-    arg_handler(argc, argv, game_state);
+    arg_handler(argc, argv, game);
 
     return 0;
 }
 
 
 
-// int process_arg(ArgType type, char **argv, int *indx, int argc, GameState *game){
-//     int value = -1;
-//     char *path = NULL;
-
-//     switch(type){
-//         case ARG
-
-//     }
-// }
