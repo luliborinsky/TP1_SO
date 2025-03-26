@@ -80,6 +80,11 @@ int main(){
 
         // read game_state
         bool still_running = !game->game_over; 
+        move = rand() % 8;
+        if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
+            perror("write movimiento");
+            exit(EXIT_FAILURE);
+        }
 
         // release game_state
         sem_wait(&sync->sig_var);
@@ -91,17 +96,6 @@ int main(){
 
         // If the game is over, release access before exiting
         if (!still_running) break;
-
-        move = rand() % 8;
-        if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
-            perror("write movimiento");
-            exit(EXIT_FAILURE);
-        }
-
-        //this sleep should be synched to the game delay
-        //if absent the pipe between player and master fills up and causes a deadlock when the game finishes
-        //master ends and waits for player but player is waiting to be read (i think)
-        usleep(200000);
     }
     
     return 0;
