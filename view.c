@@ -88,9 +88,13 @@ int main() {
             }
             printf("\n");                      
         }
+        for (unsigned int i = 0; i < game->num_players; i++){
+            printf("player %d: x=%d y=%d;   is_blocked:%d, game_over:%d\n", i, game->players[i].pos_x, game->players[i].pos_y, game->players[i].is_blocked, game->game_over);
+        }
         sem_post(&(sync->print_done));
         printf("\n");
     }
 
+    
     return 0;
 }

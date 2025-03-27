@@ -16,6 +16,7 @@
 #define DEFAULT_DELAY 200
 #define DEFAULT_TIMEOUT 10
 
+int nano_delay = 10000;
 
 typedef struct Player{
     char name[16]; // Nombre del jugador
@@ -76,6 +77,7 @@ void * createSHM(char * name, size_t size, mode_t mode){
 
 void process_players(char ** argv, int argc, int idx, GameState * game){
     game->num_players = 0;
+    pid_t player_pid;
     
     for (int i = idx; i < argc && argv[i][0] != '-'; i++) {
         if (game->num_players >= MAX_PLAYERS) {
@@ -90,7 +92,16 @@ void process_players(char ** argv, int argc, int idx, GameState * game){
         p->inv_moves = 0;
         p->v_moves = 0;
         p->is_blocked = false;
-        
+
+        player_pid = fork();
+        if(player_pid == -1){
+            perror("player fork");
+            exit(EXIT_FAILURE);
+        } else {
+            printf("player pid %d\n", player_pid);
+        }
+
+
         printf("Jugador inicializado: %s\n", p->name);
         game->num_players++;
     }
@@ -140,9 +151,8 @@ void arg_handler(int argc, char ** argv, GameState * game){
             //     }
             //     break;
             case 'p':
-                process_players(argv, argc, optind -1, game);
+                process_players(argv, argc, optind - 1, game);
                 break;
-
             case 'v':
                 view_path = optarg;
                 if(access(view_path, X_OK) == -1){
@@ -173,28 +183,14 @@ void arg_handler(int argc, char ** argv, GameState * game){
         perror("must specify number of players");
         exit(EXIT_FAILURE);
     }
-    
-
 }
 
-bool test_player_binary(const char *player_path) {
-    if(access(player_path, X_OK) == -1) {
-        perror("error to access player");
-        return false;
-    }
-    return true;
-}
-
-int main (int argc, char ** argv){
-    test_player_binary("player.out");
-    
+int main (int argc, char ** argv){    
     //create SHMs
     GameState * game = createSHM("/game_state", sizeof(GameState), 0644); //size of GameState is defined on createSHM
-    // GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
+    GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
 
     arg_handler(argc, argv, game);
-
-    //comentado porque estoy probando con ChompChamps_amd
     return 0;
 }
 

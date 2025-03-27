@@ -7,6 +7,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <time.h>
+#include <string.h>
 #define TRUE 1
 
 typedef struct Player{
@@ -66,36 +67,50 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
+    int player_idx = 0;
+    while(getpid()!=game->players[player_idx].player_pid && player_idx < 9){
+        player_idx++;
+    }
+    if(player_idx >= 9){
+        perror("player_idx not found");
+        exit(EXIT_FAILURE);
+    }
+
     srand(time(NULL));
-    int move;
+    unsigned int moves = 0;
+    int move = 0;
     while(!game->game_over){
-        sem_wait(&sync->master_utd);
+        // Start of read
         sem_wait(&sync->sig_var);
+        sem_wait(&sync->master_utd);
         sync->readers++;
         if (sync->readers == 1) {
-            sem_wait(&sync->game_state_change);
+            sem_wait(&sync->game_state_change);  // First reader locks game state
         }
-        sem_post(&sync->sig_var);
         sem_post(&sync->master_utd);
+        sem_post(&sync->sig_var);
 
-        // read game_state
-        bool still_running = !game->game_over; 
-        move = rand() % 8;
-        if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
-            perror("write movimiento");
-            exit(EXIT_FAILURE);
-        }
-
-        // release game_state
+        int game_finished = game->game_over || game->players[player_idx].is_blocked;        
+        int ready = (moves == game->players[player_idx].v_moves + game->players[player_idx].inv_moves);
+        
+        // End of read
         sem_wait(&sync->sig_var);
         sync->readers--;
         if (sync->readers == 0) {
-            sem_post(&sync->game_state_change);
+            sem_post(&sync->game_state_change);  // Last reader unlocks game state
         }
         sem_post(&sync->sig_var);
 
-        // If the game is over, release access before exiting
-        if (!still_running) break;
+        if(game_finished) return 0;
+        
+        if(ready){
+            move = rand() % 8;
+            if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
+                perror("write movimiento");
+                exit(EXIT_FAILURE);
+            }
+            moves++;
+        }
     }
     
     return 0;
