@@ -6,83 +6,95 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
-#include "board.h"
 
 #define SHM_STATE "/game_state"
-#define SHM_SYNC  "/game_sync"
+#define SHM_SYNC "/game_sync"
+#define TRUE 1
+#define FALSE 0
 
-// Estructura de sincronización
+typedef struct Player{
+    char name[16]; // Nombre del jugador
+    unsigned int score; // Puntaje
+    unsigned int inv_moves; // Cantidad de solicitudes de movimientos inválidas realizadas
+    unsigned int v_moves; // Cantidad de solicitudes de movimientos válidas realizadas
+    unsigned short pos_x, pos_y; // Coordenadas x e y en el tablero
+    pid_t player_pid; // Identificador de proceso
+    bool is_blocked; // Indica si el jugador tiene movimientos bloqueados
+} Player;    
+
+typedef struct{
+    unsigned short width, height; // dimensioens
+    unsigned int num_players; // cantidad de jugadores
+    Player players[9]; // lista de jugadores
+    bool game_over; // si el juego termino o no
+    int board[]; // tablero dinamico
+}GameState;
+
 typedef struct {
-    sem_t sem_A; // Señal para la vista (hay cambios)
-    sem_t sem_B; // Señal para el máster (vista terminó)
-    sem_t sem_C; // Evita inanición del máster
-    sem_t sem_D; // Mutex para el estado (escritor)
-    sem_t sem_E; // Mutex para la variable readers
-    unsigned int readers; // Cantidad de lectores
+    sem_t print_needed; // Se usa para indicarle a la vista que hay cambios por imprimir
+    sem_t print_done; // Se usa para indicarle al master que la vista terminó de imprimir
+    sem_t C; // Mutex para evitar inanición del master al acceder al estado
+    sem_t D; // Mutex para el estado del juego
+    sem_t E; // Mutex para la siguiente variable
+    unsigned int F; // Cantidad de jugadores leyendo el estado
 } GameSync;
 
 int main() {
-    // Abrir la memoria compartida del estado del juego
-    int shm_fd = shm_open(SHM_STATE, O_RDONLY, 0666);
-    if (shm_fd == -1) {
-        perror("shm_open game_state");
+    int game_state_fd = shm_open("/game_state", O_RDONLY, 0644);
+    if(game_state_fd == -1){
+        perror("shm_open");
         exit(EXIT_FAILURE);
     }
 
-    // Leer el tamaño del estado del juego
+    // Leer valores básicos para saber el tamaño real:
     GameState temp_game;
-    if (read(shm_fd, &temp_game, sizeof(GameState)) == -1) {
-        perror("read game_state");
-        exit(EXIT_FAILURE);
-    }
+    read(game_state_fd, &temp_game, sizeof(GameState));
     size_t game_size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
 
-    // Mapear la memoria compartida del estado del juego
-    GameState *game = mmap(NULL, game_size, PROT_READ, MAP_SHARED, shm_fd, 0);
+    // Mapear el estado real:
+    GameState *game = mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
     if (game == MAP_FAILED) {
-        perror("mmap game_state");
+        perror("mmap");
         exit(EXIT_FAILURE);
     }
 
-    // Abrir la memoria compartida de sincronización
-    int shm_sync_fd = shm_open(SHM_SYNC, O_RDWR, 0666);
+    int shm_sync_fd = shm_open("/game_sync", O_RDWR, 0666);
     if (shm_sync_fd == -1) {
-        perror("shm_open game_sync");
+        perror("shm_open sync");
         exit(EXIT_FAILURE);
     }
 
-    // Mapear la memoria compartida de sincronización
     GameSync *sync = mmap(NULL, sizeof(GameSync), PROT_READ | PROT_WRITE, MAP_SHARED, shm_sync_fd, 0);
     if (sync == MAP_FAILED) {
-        perror("mmap game_sync");
+        perror("mmap sync");
         exit(EXIT_FAILURE);
     }
 
-    // Bucle principal de la vista
-    while (1) {
-        // Esperar a que el máster indique que hay cambios
-        sem_wait(&sync->sem_A);
-
-        // Limpiar la pantalla
-        system("clear");
-
+    while (!game->game_over) {
+        sem_wait(&(sync->print_needed));
+        
         // Imprimir el tablero
-        printBoard(game);
-
-        // Mostrar estadísticas de los jugadores
-        printf("\n\033[1;36mEstadísticas:\033[0m\n");
-        for (unsigned int i = 0; i < game->num_players; i++) {
-            printf("Jugador \033[1;32m%s\033[0m: \033[1;33m%d pts\033[0m (x=%d, y=%d)\n",
-                   game->players[i].name,
-                   game->players[i].score,
-                   game->players[i].x,
-                   game->players[i].y);
+        for (int i = 0; i < game->height; i++) {
+            for (int j = 0; j < game->width; j++) {
+                int cell = game->board[i * game->width + j];
+                if (cell > 0) {
+                    // Recompensa
+                    printf("%d ", cell); 
+                } else {
+                    // Cabeza y cuerpo -> va a cambiar cuando el master marque bien q serpiente
+                    //queda en que lado
+                    printf("P ");
+                }
+            }
+            printf("\n");                      
         }
+        for (unsigned int i = 0; i < game->num_players; i++){
+            printf("player %d: x=%d y=%d;   is_blocked:%d, game_over:%d\n", i, game->players[i].pos_x, game->players[i].pos_y, game->players[i].is_blocked, game->game_over);
+        }
+        sem_post(&(sync->print_done));
         printf("\n");
-
-        // Notificar al máster que la vista terminó de imprimir
-        sem_post(&sync->sem_B);
     }
 
+    
     return 0;
 }

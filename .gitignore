@@ -1,0 +1,5 @@
+*.out
+ChompChamps*
+.bash_history
+.lesshst
+makefile
