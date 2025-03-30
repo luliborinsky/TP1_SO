@@ -79,19 +79,22 @@ int main(){
     srand(time(NULL));
     unsigned int moves = 0;
     int move = 0;
+    bool first = TRUE;
     while(!game->game_over){
         // Start of read
-        sem_wait(&sync->sig_var);
         sem_wait(&sync->master_utd);
+        sem_wait(&sync->sig_var);
+        
         sync->readers++;
         if (sync->readers == 1) {
             sem_wait(&sync->game_state_change);  // First reader locks game state
         }
-        sem_post(&sync->master_utd);
+        
         sem_post(&sync->sig_var);
+        sem_post(&sync->master_utd);
 
         int game_finished = game->game_over || game->players[player_idx].is_blocked;        
-        int ready = (moves == game->players[player_idx].v_moves + game->players[player_idx].inv_moves);
+        int ready = (moves != game->players[player_idx].v_moves + game->players[player_idx].inv_moves);
         
         // End of read
         sem_wait(&sync->sig_var);
@@ -103,13 +106,14 @@ int main(){
 
         if(game_finished) return 0;
         
-        if(ready){
+        if(ready || first){
             move = rand() % 8;
             if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
                 perror("write movimiento");
                 exit(EXIT_FAILURE);
             }
-            moves++;
+            first = !first;
+            moves = game->players[player_idx].v_moves + game->players[player_idx].inv_moves;
         }
     }
     

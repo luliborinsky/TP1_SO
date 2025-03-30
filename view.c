@@ -83,7 +83,7 @@ int main() {
                 } else {
                     // Cabeza y cuerpo -> va a cambiar cuando el master marque bien q serpiente
                     //queda en que lado
-                    printf("P ");
+                    printf(") ");
                 }
             }
             printf("\n");                      
