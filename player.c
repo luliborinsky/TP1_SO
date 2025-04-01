@@ -83,6 +83,8 @@ int main(){
     while(!game->game_over){
         // Start of read
         sem_wait(&sync->master_utd);
+        //sem_post(&sync->master_utd); clase
+
         sem_wait(&sync->sig_var);
         
         sync->readers++;
@@ -91,6 +93,7 @@ int main(){
         }
         
         sem_post(&sync->sig_var);
+        
         sem_post(&sync->master_utd);
 
         int game_finished = game->game_over || game->players[player_idx].is_blocked;        

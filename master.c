@@ -16,6 +16,15 @@
 #define DEFAULT_DELAY 200
 #define DEFAULT_TIMEOUT 10
 
+// typedef struct ShmCDT * ShmADT;
+// ShmADT create(const restrict char * id, size_t size);
+// void destroy(ShmADT shm);
+// ShmADT open(const restrict char * id);
+// void close(ShmADT shm);
+// ssize_t write(ShmADT shm, const void * buffer, size_t size);    //otro nombre de ADT o funcion?
+// ssize_t write(ShmADT shm, void * buffer, size_t size);          // ^ 
+
+
 int nano_delay = 10000;
 
 typedef struct Player{
