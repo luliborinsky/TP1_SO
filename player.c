@@ -84,6 +84,7 @@ int main(){
     int move = 0;
     bool first = TRUE;
     while(!game->game_over){
+        //turnstile to avoid master starvation (otherwise multiple readers could access at the same time)
         sem_wait(&sync->master_utd);
         sem_post(&sync->master_utd);
 
