@@ -1,0 +1,21 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-g",
+      "-pthread",
+      "-fsyntax-only",
+      "player.c",
+      "-o",
+      "player",
+      "view.c",
+      "view"
+    ],
+    "directory": "/home/torovtn/SO/TP1_SO",
+    "file": "/home/torovtn/SO/TP1_SO/player.c",
+    "output": "/home/torovtn/SO/TP1_SO/player"
+  }
+]

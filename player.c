@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it. 
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -49,7 +52,7 @@ int main(){
     read(game_state_fd, &temp_game, sizeof(GameState));
     size_t game_size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
 
-    GameState *game = mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
+    GameState *game = (GameState *) mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
     if (game == MAP_FAILED) {
         perror("mmap game_state");
         exit(EXIT_FAILURE);
@@ -61,14 +64,14 @@ int main(){
         exit(EXIT_FAILURE);
     }
 
-    GameSync *sync = mmap(NULL, sizeof(GameSync), PROT_READ | PROT_WRITE, MAP_SHARED, shm_sync_fd, 0);
+    GameSync *sync = (GameSync *) mmap(NULL, sizeof(GameSync), PROT_READ | PROT_WRITE, MAP_SHARED, shm_sync_fd, 0);
     if (sync == MAP_FAILED) {
         perror("mmap sync");
         exit(EXIT_FAILURE);
     }
 
     int player_idx = 0;
-    while(getpid()!=game->players[player_idx].player_pid && player_idx < 9){
+    while(player_idx < 9 && getpid()!=game->players[player_idx].player_pid){
         player_idx++;
     }
     if(player_idx >= 9){
@@ -81,9 +84,8 @@ int main(){
     int move = 0;
     bool first = TRUE;
     while(!game->game_over){
-        // Start of read
         sem_wait(&sync->master_utd);
-        //sem_post(&sync->master_utd); clase
+        sem_post(&sync->master_utd);
 
         sem_wait(&sync->sig_var);
         
@@ -93,8 +95,6 @@ int main(){
         }
         
         sem_post(&sync->sig_var);
-        
-        sem_post(&sync->master_utd);
 
         int game_finished = game->game_over || game->players[player_idx].is_blocked;        
         int ready = (moves != game->players[player_idx].v_moves + game->players[player_idx].inv_moves);

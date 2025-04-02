@@ -1,5 +1,10 @@
-*.out
+master
+player
+view
 ChompChamps*
 .bash_history
 .lesshst
 makefile
+PVS-Studio.log
+report
+strace_out
