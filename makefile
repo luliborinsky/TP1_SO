@@ -30,10 +30,14 @@ $(BIN_DIR)/view: view.c | $(BIN_DIR)
 clean:
 	rm -f $(TARGETS)
 	rm -rf $(BIN_DIR) $(ANALYSIS_DIR)
-	rm strace_out
+	rm -f strace_out compile_commands.json
 
 run: all
 	./$(BIN_DIR)/master -p $(BIN_DIR)/player $(BIN_DIR)/player $(BIN_DIR)/player
+
+# Generate compile_commands.json (for PVS)
+compile_commands.json:
+	bear -- make clean all  # Ensures JSON includes fresh build data
 
 # PVS-Studio Static Analysis
 analysis: $(PVS_REPORT)
@@ -41,8 +45,7 @@ analysis: $(PVS_REPORT)
 $(ANALYSIS_DIR):
 	mkdir -p $(ANALYSIS_DIR)
 
-$(PVS_REPORT): $(TARGETS) | $(ANALYSIS_DIR)
-	pvs-studio-analyzer trace -- make
+$(PVS_REPORT): compile_commands.json $(TARGETS) | $(ANALYSIS_DIR)
 	pvs-studio-analyzer analyze --file compile_commands.json -o $(PVS_LOG)
 	plog-converter -a GA:1,2 -t json $(PVS_LOG) -o $(PVS_REPORT)
 

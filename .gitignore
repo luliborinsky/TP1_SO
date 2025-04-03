@@ -5,4 +5,5 @@ ChompChamps*
 .lesshst
 PVS-Studio.log
 report
-strace_out
+compile_commands.json
+compile_commands.json
