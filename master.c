@@ -129,7 +129,7 @@ void arg_handler(const int argc, char * const* argv){
     }
 }
 
-void init_processes(GameState *game, const char *view_path){
+void init_processes(Gamegame *game, const char *view_path){
     // pid_t view_pid = 0;
 
     //pipes for child comm
@@ -186,7 +186,7 @@ void init_processes(GameState *game, const char *view_path){
 // 270   execve("bin/player", ["bin/player", "10", "10"], 0x7fff859a5e18 /* 0 vars */) = 0
 
 
-void init_board(GameState *game, unsigned int seed){
+void init_board(Gamegame *game, unsigned int seed){
     srand(seed);
 
     size_t board_size = game->width * game->height;
@@ -196,7 +196,7 @@ void init_board(GameState *game, unsigned int seed){
     }
 }
 
-void init_game_state(GameState * game, int width, int height){
+void init_game_game(Gamegame * game, int width, int height){
     game->game_over = true;
     game->num_players = 0;
     game->width = width;
@@ -236,12 +236,12 @@ int main (int const argc, char * const * argv){
     
     printf("width: %d\nheight: %d\n", width, height);
 
-    size_t size = sizeof(GameState) + width * height * sizeof(int);
+    size_t size = sizeof(Gamegame) + width * height * sizeof(int);
 
     printf("Final size: %zu\n", size);
     
-    GameState * game = createSHM("/game_state", size, 0644);
-    init_game_state(game, width, height);
+    Gamegame * game = createSHM("/game_game", size, 0644);
+    init_game_game(game, width, height);
 
     init_board(game, seed);
 

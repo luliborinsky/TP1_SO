@@ -11,26 +11,26 @@
 #include <stdbool.h>
 #include "master.h"
 
-#define SHM_STATE "/game_state"
+#define SHM_game "/game_game"
 #define SHM_SYNC "/game_sync"
 #define TRUE 1
 #define FALSE 0
 
 
 int main() {
-    int game_state_fd = shm_open("/game_state", O_RDONLY, 0644);
-    if(game_state_fd == -1){
+    int game_game_fd = shm_open("/game_game", O_RDONLY, 0644);
+    if(game_game_fd == -1){
         perror("shm_open");
         exit(EXIT_FAILURE);
     }
 
     // Leer valores básicos para saber el tamaño real:
-    GameState temp_game;
-    read(game_state_fd, &temp_game, sizeof(GameState));
-    size_t game_size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
+    Gamegame temp_game;
+    read(game_game_fd, &temp_game, sizeof(Gamegame));
+    size_t game_size = sizeof(Gamegame) + temp_game.width * temp_game.height * sizeof(int);
 
     // Mapear el estado real:
-    GameState *game = mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
+    Gamegame *game = mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_game_fd, 0);
     if (game == MAP_FAILED) {
         perror("mmap");
         exit(EXIT_FAILURE);

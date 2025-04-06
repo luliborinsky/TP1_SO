@@ -27,13 +27,13 @@ typedef struct{
     Player players[9]; // lista de jugadores
     bool game_over; // si el juego termino o no
     int board[]; // tablero dinamico
-}GameState;
+}Gamegame;
 
 typedef struct {
     sem_t print_needed; // Se usa para indicarle a la vista que hay cambios por imprimir
     sem_t print_done; // Se usa para indicarle al master que la vista terminó de imprimir
     sem_t master_utd; // Mutex para evitar inanición del master al acceder al estado
-    sem_t game_state_change; // Mutex para el estado del juego
+    sem_t game_game_change; // Mutex para el estado del juego
     sem_t sig_var; // Mutex para la siguiente variable
     unsigned int readers; // Cantidad de jugadores leyendo el estado
 } GameSync;
