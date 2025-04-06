@@ -26,25 +26,20 @@
 // ssize_t write(ShmADT shm, const void * buffer, size_t size);    //otro nombre de ADT o funcion?
 // ssize_t write(ShmADT shm, void * buffer, size_t size);          // ^ 
 
-
+char * width_string;
+char * height_string;
 int timeout = DEFAULT_TIMEOUT;
 int delay = DEFAULT_NANO_DELAY;
 char * view_path = NULL;
 unsigned int seed = 0;
+char * player_paths[10]; //NULL TERMINATED
 
-//creates shared memory
+
 void * createSHM(char * name, size_t size, mode_t mode){
-    int fd;
-    fd = shm_open(name, O_RDWR | O_CREAT, mode); 
+    int fd = shm_open(name, O_RDWR | O_CREAT, mode); 
     if(fd == -1){                                
         perror("shm_open");
         exit(EXIT_FAILURE);
-    }
-
-    if(strcmp(name, "/game_state") == 0){
-        GameState temp_game;
-        read(fd, &temp_game, sizeof(GameState));
-        size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
     }
 
     if(-1 == ftruncate(fd, size)){
@@ -61,38 +56,22 @@ void * createSHM(char * name, size_t size, mode_t mode){
     return p;
 }
 
-void process_player(GameState * game, char * player_name){    
-    Player * p = &game->players[game->num_players];
-    strncpy(p->name, player_name, sizeof(p->name) - 1);
-    p->name[sizeof(p->name) - 1] = '\0';
-    p->score = 0;
-    p->inv_moves = 0;
-    p->v_moves = 0;
-    p->is_blocked = false;
-    game->num_players++;
-    //positions and pid are initialized at game start
+void save_player_path(char * player_path, const int player_count){
+    player_paths[player_count] = player_path;
 }
 
-void arg_handler(int argc, char ** argv, GameState * game){
+void arg_handler(const int argc, char * const* argv){
     int opt;
     opterr = 0;
-    memset(game, 0, sizeof(GameState));
+    int player_count = 0;
 
     while((opt = getopt(argc, argv, "w:h:t:d:p:v:s:")) != -1){
         switch(opt){
             case 'w':
-                game->width = atoi(optarg);
-                if(game->width < DEFAULT_WIDTH){
-                    perror("board size too small");
-                    exit(EXIT_FAILURE);
-                }
+                width_string = optarg;
                 break;
             case 'h':
-                game->height = atoi(optarg);
-                if(game->height < DEFAULT_HEIGHT){
-                    perror("board size too small");
-                    exit(EXIT_FAILURE);
-                }
+                height_string = optarg;                
                 break;
 
             case 't':
@@ -112,13 +91,14 @@ void arg_handler(int argc, char ** argv, GameState * game){
                 break;
 
             case 'p':{
-                process_player(game, optarg);
-                while(optind < argc && game->num_players < MAX_PLAYERS){
+                save_player_path(optarg, player_count++);
+                while(optind < argc && player_count < MAX_PLAYERS){
                     
                     if(argv[optind][0] == '-') break;
 
-                    process_player(game, argv[optind++]);
+                    save_player_path(argv[optind++], player_count++);
                 }
+                player_paths[player_count] = "\0";
                 break;
             }
                 
@@ -143,98 +123,129 @@ void arg_handler(int argc, char ** argv, GameState * game){
                 exit(EXIT_FAILURE);
         }   
     }
-    if(game->num_players == 0){
-        perror("must specify number of players");
+    if(player_count == 0){
+        perror("ERROR: There are no players");
         exit(EXIT_FAILURE);
     }
 }
 
-void init_processes(GameState *game, const char *view_path, int player_pipes[][2]){
+void init_processes(GameState *game, const char *view_path){
     // pid_t view_pid = 0;
 
-    // pipe para players (NOSE)
+    //pipes for child comm
+    int player_pipes[game->num_players][2];
     for(unsigned int i = 0; i < game->num_players; i++){
         if(pipe(player_pipes[i]) == -1){
             perror("error creating pipe for player");
             exit(EXIT_FAILURE);
         }
     }
-
+    
     // fork player
     for(unsigned int i = 0; i < game->num_players; i++){
         pid_t player_pid = fork();
         if(player_pid == -1){
             perror("fork error");
-            for(unsigned int j = 0; j <= i; j++){
-                close(player_pipes[j][0]);
-                close(player_pipes[j][1]);
-            }
             exit(EXIT_FAILURE);
         }
-        if(player_pid == 0){ // hijo
-            for(unsigned int j = 0; j < game->num_players; j++){
-                if(j != i){
-                    close(player_pipes[j][0]);
-                    close(player_pipes[j][1]);
-                }
-            }
-            close(player_pipes[i][0]);  // close read
 
-            if(dup2(player_pipes[i][1], STDOUT_FILENO) == -1){
-                perror("error stdout player");
+        if(player_pid == 0){
+            int prev_write_fd = player_pipes[i][1];
+            if(dup2(prev_write_fd, STDIN_FILENO) == -1){
+                perror("dup failed");
                 exit(EXIT_FAILURE);
             }
-            close(player_pipes[i][1]);
-            char * player_argv[1];
-            player_argv[0] = game->players[i].name;
-            execve(game->players[i].name, player_argv, player_argv);
-        }
-        else { // padre (master)
-            close(player_pipes[i][1]); // close write
-            game->players[i].pid = player_pid;
-            printf("player %d (%s) init with pid: %d\n", i + 1, game->players[i].name, player_pid); 
-        }
+            close(prev_write_fd);
+            close(player_pipes[i][0]); //close read-end
 
-        
+            char * player_path = game->players[i].name;
+            char * player_argv[4] = {player_path, width_string, height_string, NULL}; //ChompChamps lo ahce asi
+            char * envp[] = {'\0'};
 
+            game->players[i].pid = getpid();
+            execve(player_path, player_argv, envp);
+        }
     }
-
-
-
+        
+    for(unsigned int j = 0; j < game->num_players; j++){    
+        close(player_pipes[j][1]);
+    }
 }
+//strace // 265 was master pid and 270 child pid
+// 265   pipe2([5, 6], 0)                  = 0
+// 265   clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x7f0dc74f2a10) = 270
+// 270   set_robust_list(0x7f0dc74f2a20, 24 <unfinished ...>
+// 265   close(6 <unfinished ...>
+// 270   <... set_robust_list resumed>)    = 0
+// 265   <... close resumed>)              = 0
+// 265   pselect6(6, [5], NULL, NULL, {tv_sec=10, tv_nsec=0}, NULL <unfinished ...>
+// 270   setuid(1000)                      = 0
+// 270   close(5)                          = 0
+// 270   dup2(6, 1)                        = 1
+// 270   close(6)                          = 0
+// 270   execve("bin/player", ["bin/player", "10", "10"], 0x7fff859a5e18 /* 0 vars */) = 0
+
 
 void init_board(GameState *game, unsigned int seed){
     srand(seed);
 
     size_t board_size = game->width * game->height;
     
-    // lleno tablero recompensas
     for(unsigned int i = 0; i < board_size; i++){
         game->board[i] = (rand() % 9) + 1;
     }
 }
 
-int main (int argc, char ** argv){    
-    //create SHMs
-    GameState * game = createSHM("/game_state", sizeof(GameState), 0644); //size of GameState is defined on createSHM
-    GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
-    
+void init_game_state(GameState * game, int width, int height){
+    game->game_over = true;
     game->num_players = 0;
-    game->width = DEFAULT_WIDTH;
-    game->height = DEFAULT_HEIGHT;
-
-    arg_handler(argc, argv, game);
-    
-    if(game->num_players == 0){
-        perror("ERROR: no players");
+    game->width = width;
+    game->height = height;
+    if(game->height < DEFAULT_HEIGHT){
+        perror("height must be higher than 9");
         exit(EXIT_FAILURE);
     }
+    if(game->width < DEFAULT_WIDTH){
+        perror("width must be higher than 9");
+        exit(EXIT_FAILURE);
+    }
+
+    Player p;
+    while(player_paths[game->num_players] != NULL && game->num_players < 9){
+        strncpy(p.name, player_paths[game->num_players], sizeof(p.name) - 1);
+
+        p.name[sizeof(p.name) - 1] = '\0';
+        p.score = 0;
+        p.inv_moves = 0;
+        p.v_moves = 0;
+        p.is_blocked = false;
+        game->players[game->num_players++] = p;
+    }
+}
+
+int main (int const argc, char * const * argv){
+    width_string = "10";
+    height_string = "10";
+
+    GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
+
+    arg_handler(argc, argv);
+
+    int width = atoi(width_string);
+    int height = atoi(height_string);
     
-    init_board(game, seed); //TODO
+    printf("width: %d\nheight: %d\n", width, height);
 
-    int player_pipes[game->num_players][2];
+    size_t size = sizeof(GameState) + width * height * sizeof(int);
 
-    init_processes(game, view_path, player_pipes); //TODO
+    printf("Final size: %zu\n", size);
+    
+    GameState * game = createSHM("/game_state", size, 0644);
+    init_game_state(game, width, height);
+
+    init_board(game, seed);
+
+    init_processes(game, view_path);
     return 0;
 }
 

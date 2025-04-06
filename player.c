@@ -46,7 +46,7 @@ int main(){
     }
 
     int player_idx = 0;
-    while(player_idx < 9 && getpid()!=game->players[player_idx].pid){
+    while(player_idx < 9 && getpid() != game->players[player_idx].pid){
         player_idx++;
     }
     if(player_idx >= 9){
