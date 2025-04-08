@@ -17,19 +17,19 @@
 
 
 int main(){
-    int game_game_fd = shm_open("/game_game", O_RDONLY, 0);
-    if (game_game_fd == -1){
-        perror("shm_open game_game");
+    int game_state_fd = shm_open("/game_state", O_RDONLY, 0);
+    if (game_state_fd == -1){
+        perror("shm_open game_state");
         exit(EXIT_FAILURE);
     }
 
-    Gamegame temp_game;
-    read(game_game_fd, &temp_game, sizeof(Gamegame));
-    size_t game_size = sizeof(Gamegame) + temp_game.width * temp_game.height * sizeof(int);
+    GameState temp_game;
+    read(game_state_fd, &temp_game, sizeof(GameState));
+    size_t game_size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
 
-    Gamegame *game = (Gamegame *) mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_game_fd, 0);
+    GameState *game = (GameState *) mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
     if (game == MAP_FAILED) {
-        perror("mmap game_game");
+        perror("mmap game_state");
         exit(EXIT_FAILURE);
     }
 
@@ -67,7 +67,7 @@ int main(){
         
         sync->readers++;
         if (sync->readers == 1) {
-            sem_wait(&sync->game_game_change);  // First reader locks game game
+            sem_wait(&sync->game_state_change);  // First reader locks game game
         }
         
         sem_post(&sync->sig_var);
@@ -79,7 +79,7 @@ int main(){
         sem_wait(&sync->sig_var);
         sync->readers--;
         if (sync->readers == 0) {
-            sem_post(&sync->game_game_change);  // Last reader unlocks game game
+            sem_post(&sync->game_state_change);  // Last reader unlocks game game
         }
         sem_post(&sync->sig_var);
 
