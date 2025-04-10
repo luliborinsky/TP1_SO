@@ -142,7 +142,26 @@ void arg_handler(const int argc, char * const* argv){
 
 void init_processes(GameState *game, const char *view_path){
     // pid_t view_pid = 0;
+    printf("view_path: %s\n", view_path);
+    if(view_path != NULL) {
+        pid_t view_pid = fork();
+        if(view_pid == -1){
+            perror("View fork error");
+            exit(EXIT_FAILURE);
+        }
+        if (view_pid == 0){
+            if(access(view_path, X_OK) == -1){
+                perror("View binary not accessible");
+                exit(EXIT_FAILURE);
+            }
+            char * view_argv[2] = {view_path, NULL};
+            char * envp[] = { NULL };
 
+            execve(view_path, view_argv, envp);
+            perror("execve failed"); // THIS LINE ONLY EXECUTES IF EXECVE FAILS
+            exit(EXIT_FAILURE);
+        }
+    }
     //pipes for child comm
     for(unsigned int i = 0; i < game->num_players; i++){
         if(pipe(player_pipes[i]) == -1){
@@ -254,8 +273,8 @@ int main (int const argc, char * const * argv){
     view_path = NULL;
 
     GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
-    // sem_init(&sync->print_needed, 1, 0);
-    // sem_init(&sync->print_done, 1, 1);
+    sem_init(&sync->print_needed, 1, 0);
+    sem_init(&sync->print_done, 1, 0);
     sem_init(&sync->game_state_change, 1, 1);
     sem_init(&sync->master_utd, 1, 1);
     sem_init(&sync->sig_var, 1, 1);
@@ -301,6 +320,8 @@ int main (int const argc, char * const * argv){
         sem_wait(&sync->master_utd);
         sem_wait(&sync->game_state_change);
         sem_post(&sync->master_utd);
+        sem_post(&sync->print_needed);
+        sem_wait(&sync->print_done);
 
         error = handle_moves(game, sync, &tv);
         if(error){
@@ -316,6 +337,7 @@ int main (int const argc, char * const * argv){
         sem_post(&sync->game_state_change);
         usleep(delay * 1000);
     }
+        
     
     printf("game is %s over\n", game->game_over? "" : "NOT");
 
