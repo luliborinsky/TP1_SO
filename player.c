@@ -56,13 +56,11 @@ int main(){
 
     srand(time(NULL));
     unsigned int moves = 0;
-    int move = 0;
     bool first = TRUE;
     while(!game->game_over){
         //turnstile to avoid master starvation (otherwise multiple readers could access at the same time)
         sem_wait(&sync->master_utd);
         sem_post(&sync->master_utd);
-
         sem_wait(&sync->sig_var);
         
         sync->readers++;
@@ -86,15 +84,15 @@ int main(){
         if(game_finished) return 0;
         
         if(ready || first){
-            move = rand() % 8;
+            unsigned char move = rand() % 8;
             if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
                 perror("write movimiento");
                 exit(EXIT_FAILURE);
-            }
+            }   
             first = !first;
             moves = game->players[player_idx].v_moves + game->players[player_idx].inv_moves;
         }
     }
-    
+
     return 0;
 }
