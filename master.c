@@ -109,6 +109,10 @@ void arg_handler(const int argc, char * const* argv){
 
                     save_player_path(argv[optind++], player_count++);
                 }
+                if(player_count > 9){
+                    perror("more than 9 players");
+                    exit(EXIT_FAILURE);
+                }
                 player_paths[player_count] = NULL;
                 break;
             }
@@ -140,8 +144,7 @@ void arg_handler(const int argc, char * const* argv){
     }
 }
 
-void init_processes(GameState *game, const char *view_path){
-    // pid_t view_pid = 0;
+void init_processes(GameState *game){
     printf("view_path: %s\n", view_path);
     if(view_path != NULL) {
         pid_t view_pid = fork();
@@ -254,7 +257,7 @@ void init_game_state(GameState * game, int width, int height){
     }
 }
 
-int handle_moves(GameState * game, GameSync * sync, struct timeval * tv);
+int handle_moves(GameState * game, struct timeval * tv, unsigned char * player_moves);
 void process_player_move(GameState * game, int player_idx, unsigned char move);
 bool has_available_moves(GameState * game, int player_idx);
 
@@ -301,12 +304,12 @@ int main (int const argc, char * const * argv){
 
     init_board(game, seed);
 
-    init_processes(game, view_path);
+    init_processes(game);
 
-    
+    unsigned char player_moves[9];
     sync->readers = 0;
-    int error = 0;
-    // int last_cycle = time(NULL);
+    //for first loop
+    sem_post(&sync->game_state_change);
     while(!game->game_over){
         highest_fd = 0;
         FD_ZERO(&read_fds);
@@ -316,17 +319,25 @@ int main (int const argc, char * const * argv){
                 highest_fd = player_pipes[i][0] + 1;
             }
         }
+
+        if(handle_moves(game, &tv, player_moves)){
+            printf("handle_moves error\n");
+            game->game_over = true;
+        }
         
         sem_wait(&sync->master_utd);
         sem_wait(&sync->game_state_change);
         sem_post(&sync->master_utd);
-        sem_post(&sync->print_needed);
-        sem_wait(&sync->print_done);
 
-        error = handle_moves(game, sync, &tv);
-        if(error){
-            printf("handle_moves error\n");
-            game->game_over = true;
+        for (unsigned int i = 0; i<game->num_players; i++){
+            process_player_move(game, i, player_moves[i]);
+        }
+
+        sem_post(&sync->game_state_change);
+
+        if(view_path != NULL){
+            sem_post(&sync->print_needed);
+            sem_wait(&sync->print_done);
         }
 
         if(all_players_blocked(game)){
@@ -334,7 +345,7 @@ int main (int const argc, char * const * argv){
             game->game_over = true;
         } 
 
-        sem_post(&sync->game_state_change);
+        
         usleep(delay * 1000);
     }
         
@@ -369,8 +380,7 @@ int main (int const argc, char * const * argv){
 }
 
 //returns != 0 if failed
-int handle_moves(GameState *game, GameSync * sync, struct timeval *timeout) {
-    sem_post(&sync->game_state_change);
+int handle_moves(GameState *game, struct timeval *timeout, unsigned char * player_moves) {
     int ready = select(highest_fd, &read_fds, NULL, NULL, timeout);
 
     if (ready == -1) {
@@ -385,13 +395,13 @@ int handle_moves(GameState *game, GameSync * sync, struct timeval *timeout) {
         int fd = player_pipes[i][0];
         if (FD_ISSET(fd, &read_fds)) {
             unsigned char move;
-            ssize_t bytes = read(fd, &move, sizeof(move));
 
-            if (bytes <= 0) {
+            if (read(fd, &move, sizeof(move)) <= 0) {
                 perror("read from player\n");
                 continue;
             }
-            process_player_move(game, i, move);
+
+            player_moves[i] = move;
         }
     }
 
