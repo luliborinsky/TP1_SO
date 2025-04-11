@@ -13,7 +13,9 @@
 #include <string.h>
 #include <time.h>
 #include <sys/wait.h>
-#include "commonHeaders.h"
+#include "../commonHeaders.h"
+#include "../utilities/sync.h"
+#include "gameLogic.h"
 
 void *createSHM(char *name, size_t size, mode_t mode);
 void save_player_path(char *player_path, const int player_count);
@@ -26,7 +28,5 @@ void process_player_move(GameState *game, int player_idx, unsigned char move);
 bool has_available_moves(GameState *game, int player_idx);
 bool valid_move(GameState *game, int x, int y);
 bool all_players_blocked(GameState *game);
-
-
 
 #endif 

@@ -1,15 +1,7 @@
 // This is a personal academic project. Dear PVS-Studio, please check it. 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <semaphore.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdbool.h>
-#include "master.h"
+
 #include "commonHeaders.h"
 #define SHM_game "/game_state"
 #define SHM_SYNC "/game_sync"
