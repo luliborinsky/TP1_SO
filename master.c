@@ -1,7 +1,7 @@
 // This is a personal academic project. Dear PVS-Studio, please check it. 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -38,6 +38,7 @@ char * height_string;
 int timeout = DEFAULT_TIMEOUT;
 int delay = DEFAULT_MS_DELAY;
 char * view_path;
+pid_t view_pid;
 unsigned int seed;
 char * player_paths[10]; //NULL TERMINATED
 fd_set read_fds;
@@ -68,7 +69,6 @@ void * createSHM(char * name, size_t size, mode_t mode){
 
 void save_player_path(char * player_path, const int player_count){
     player_paths[player_count] = player_path;
-    printf("Saved player path[%d]: %s\n", player_count, player_paths[player_count]);
 }
 
 void arg_handler(const int argc, char * const* argv){
@@ -145,9 +145,8 @@ void arg_handler(const int argc, char * const* argv){
 }
 
 void init_processes(GameState *game){
-    printf("view_path: %s\n", view_path);
     if(view_path != NULL) {
-        pid_t view_pid = fork();
+        view_pid = fork();
         if(view_pid == -1){
             perror("View fork error");
             exit(EXIT_FAILURE);
@@ -221,11 +220,21 @@ void init_board(GameState *game, unsigned int seed){
         game->board[i] = (rand() % 9) + 1;
     }
 
-    for(unsigned int i = 0; i < game->num_players; i++){
-        game->players[i].x = game->width / (i+1 + game->num_players);
-        game->players[i].y = game->height / (i+1 + game->num_players);
+    int zones_per_row = (int)ceil(sqrt(game->num_players));
+    int zone_width = game->width / zones_per_row;
+    int zone_height = game->height / zones_per_row;
 
-        game->board[game->players[i].y * game->width + game->players[i].x] = 0;
+    for (unsigned int i = 0; i < game->num_players; i++) {
+        int zone_col = i % zones_per_row;
+        int zone_row = i / zones_per_row;
+
+        int x_center = zone_col * zone_width + zone_width / 2;
+        int y_center = zone_row * zone_height + zone_height / 2;
+
+        game->players[i].x = x_center;
+        game->players[i].y = y_center;
+        game->board[y_center * game->width + x_center] = 0;
+        printf("player %d on x=%d y=%d\n", i, x_center, y_center);
     }
 }
 
@@ -309,6 +318,11 @@ int main (int const argc, char * const * argv){
     unsigned char player_moves[9];
     sync->readers = 0;
     //for first loop
+
+    if(view_path != NULL){
+            sem_post(&sync->print_needed);
+            sem_wait(&sync->print_done);
+    }
     sem_post(&sync->game_state_change);
     while(!game->game_over){
         highest_fd = 0;
@@ -342,6 +356,7 @@ int main (int const argc, char * const * argv){
 
         if(all_players_blocked(game)){
             printf("all players blocked\n");
+            sem_post(&sync->print_needed);
             game->game_over = true;
         } 
 
@@ -357,8 +372,9 @@ int main (int const argc, char * const * argv){
     }
 
     int wstatus;
+    int returned_pid;
     for(unsigned int i = 0; i < game->num_players; i++){
-        int returned_pid = waitpid(game->players[i].pid, &wstatus, 0);
+        returned_pid = waitpid(game->players[i].pid, &wstatus, 0);
         if(returned_pid == -1){
             printf("WAITPID failed on player (%s) with pid %d\n", game->players[i].name, game->players[i].pid);
         }
@@ -366,6 +382,17 @@ int main (int const argc, char * const * argv){
             printf("Player %s exited with status (%d)\n", game->players[i].name, wstatus);
         }
     }
+
+    if(view_path != NULL){
+        returned_pid = waitpid(view_pid, &wstatus, 0);
+        if(returned_pid == -1){
+            printf("WAITPID failed on view with pid %d\n", view_pid);
+        }
+        if(WIFEXITED(wstatus)){
+            printf("View exited with status (%d)\n", wstatus);
+        }
+    }
+
 
     sem_destroy(&sync->print_needed);
     sem_destroy(&sync->print_done);
@@ -433,14 +460,11 @@ bool has_available_moves(GameState * game, int player_idx){
 }
 
 void process_player_move(GameState * game, int player_idx, unsigned char move){
-    printf("player move %d\n", move);
     int dir_x[8] = {0, 1, 1, 1, 0, -1, -1, -1};
     int dir_y[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
 
     int new_x = game->players[player_idx].x + dir_x[move];
     int new_y = game->players[player_idx].y + dir_y[move];
-    
-    printf("player new_x %d new_y %d\n", new_x, new_y);
 
     if(!has_available_moves(game, player_idx)){
         game->players[player_idx].is_blocked = true;
@@ -455,6 +479,6 @@ void process_player_move(GameState * game, int player_idx, unsigned char move){
     game->players[player_idx].v_moves++;
     game->players[player_idx].x = new_x;
     game->players[player_idx].y = new_y;
-
+    game->players[player_idx].score += game->board[new_y + game->width + new_x];
     game->board[new_y * game->width + new_x] = 0;
 }
