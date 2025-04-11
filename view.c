@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include "master.h"
-
+#include "commonHeaders.h"
 #define SHM_game "/game_state"
 #define SHM_SYNC "/game_sync"
 #define TRUE 1
@@ -61,7 +61,7 @@ int main() {
                 } else {
                     // Cabeza y cuerpo -> va a cambiar cuando el master marque bien q serpiente
                     //queda en que lado
-                    printf(") ");
+                    printf("# ");
                 }
             }
             printf("\n");                      

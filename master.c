@@ -14,6 +14,7 @@
 #include <time.h>
 #include <sys/wait.h>
 #include "master.h"
+#include "commonHeaders.h"
 #define MAX_PLAYERS 9
 #define DEFAULT_WIDTH 10
 #define DEFAULT_HEIGHT 10
