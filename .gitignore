@@ -1,0 +1,9 @@
+/bin
+/analysis
+ChompChamps*
+.bash_history
+.lesshst
+PVS-Studio.log
+report
+compile_commands.json
+.config
