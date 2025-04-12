@@ -18,8 +18,8 @@ all: $(BIN_DIR) $(TARGETS)
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-$(BIN_DIR)/master: master/master.c master/gameLogic.c utilities/sync.c commonHeaders.h master/master.h master/gameLogic.h utilities/sync.h
-	$(CC) $(CFLAGS) master/master.c master/gameLogic.c utilities/sync.c -o $@ $(LDFLAGS)
+$(BIN_DIR)/master: master/master.c master/gameLogic.c master/processManager.c utilities/sync.c commonHeaders.h master/master.h master/gameLogic.h master/processManager.h utilities/sync.h
+	$(CC) $(CFLAGS) master/master.c master/gameLogic.c master/processManager.c utilities/sync.c -o $@ $(LDFLAGS)
 
 
 # Compile player binary
@@ -36,7 +36,7 @@ clean:
 	rm -f strace_out compile_commands.json
 
 run: all
-	./$(BIN_DIR)/master -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player
+	./$(BIN_DIR)/master -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player -v ./$(BIN_DIR)/view
 
 # Generate compile_commands.json (for PVS)
 compile_commands.json:

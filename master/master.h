@@ -16,6 +16,7 @@
 #include "../commonHeaders.h"
 #include "../utilities/sync.h"
 #include "gameLogic.h"
+#include "processManager.h"
 
 #define MAX_PLAYERS 9
 #define DEFAULT_WIDTH 10
@@ -28,21 +29,18 @@
 #define HANDLE_TIMEOUT 0
 #define HANDLE_ERROR -1
 
-char * width_string;
-char * height_string;
-int timeout = DEFAULT_TIMEOUT;
-int delay = DEFAULT_MS_DELAY;
-char * view_path;
-pid_t view_pid;
-unsigned int seed;
-char * player_paths[10]; //NULL TERMINATED
-fd_set read_fds;
-int highest_fd;
-int current_player = 0;
-int player_pipes[MAX_PLAYERS][2];
+extern char * width_string;
+extern char * height_string;
+extern int timeout;
+extern int delay;
+extern char * view_path;
+extern pid_t view_pid;
+extern unsigned int seed;
+extern char * player_paths[10]; //NULL TERMINATED
+extern fd_set read_fds;
+extern int highest_fd;
+extern int current_player;
+extern int player_pipes[MAX_PLAYERS][2];
 
-void save_player_path(char *player_path, const int player_count);
-void arg_handler(const int argc, char *const *argv);
-void init_processes(GameState *game);
 
 #endif 
