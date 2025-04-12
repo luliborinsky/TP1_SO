@@ -18,3 +18,44 @@ void destroy_and_unlink_semaphores(GameSync * sync){
     shm_unlink("/game_state");
     shm_unlink("/game_sync");
 }
+
+void * create_shm(char * name, size_t size, mode_t mode){
+    int fd = shm_open(name, O_RDWR | O_CREAT, mode); 
+    if(fd == -1){                                
+        perror("shm_open");
+        exit(EXIT_FAILURE);
+    }
+
+    if(-1 == ftruncate(fd, size)){
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
+
+    void * p = mmap(NULL, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+    if(p == MAP_FAILED){
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+
+    return p;
+}
+
+void * open_existing_shm(char * name, size_t size, int permissions){
+    int shm_fd = shm_open(name, permissions, 0);
+    if  (shm_fd == -1) {
+        perror("shm_open failed");
+        exit(EXIT_FAILURE);
+    }
+
+    int prot = PROT_READ;
+    if (permissions == O_RDWR){
+        prot |= PROT_WRITE;
+    }
+
+    GameSync * shm = (GameSync *) mmap(NULL, size, prot, MAP_SHARED, shm_fd, 0);
+    if (sync == MAP_FAILED) {
+        perror("mmap failed");
+        exit(EXIT_FAILURE);
+    }
+    return shm;
+}

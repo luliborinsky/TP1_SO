@@ -36,7 +36,7 @@ clean:
 	rm -f strace_out compile_commands.json
 
 run: all
-	./$(BIN_DIR)/master -d 200 -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player -v ./$(BIN_DIR)/view
+	./$(BIN_DIR)/master -d 0 -v ./$(BIN_DIR)/view -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player
 
 # Generate compile_commands.json (for PVS)
 compile_commands.json:

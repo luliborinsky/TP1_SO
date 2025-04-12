@@ -3,59 +3,6 @@
 
 
 #include "master.h"
-#include "../utilities/sync.h"
-#define MAX_PLAYERS 9
-#define DEFAULT_WIDTH 10
-#define DEFAULT_HEIGHT 10
-#define DEFAULT_WIDTH_STRING "10"
-#define DEFAULT_HEIGHT_STRING "10"
-#define DEFAULT_MS_DELAY 200
-#define DEFAULT_TIMEOUT 10
-#define HANDLE_OK 1
-#define HANDLE_TIMEOUT 0
-#define HANDLE_ERROR -1
-
-// typedef struct ShmCDT * ShmADT;
-// ShmADT create(const restrict char * id, size_t size);
-// void destroy(ShmADT shm);
-// ShmADT open(const restrict char * id);
-// void close(ShmADT shm);
-// ssize_t write(ShmADT shm, const void * buffer, size_t size);    //otro nombre de ADT o funcion?
-// ssize_t write(ShmADT shm, void * buffer, size_t size);          //
-
-char * width_string;
-char * height_string;
-int timeout = DEFAULT_TIMEOUT;
-int delay = DEFAULT_MS_DELAY;
-char * view_path;
-pid_t view_pid;
-unsigned int seed;
-char * player_paths[10]; //NULL TERMINATED
-fd_set read_fds;
-int highest_fd;
-int current_player = 0;
-int player_pipes[MAX_PLAYERS][2];
-
-void * createSHM(char * name, size_t size, mode_t mode){
-    int fd = shm_open(name, O_RDWR | O_CREAT, mode); 
-    if(fd == -1){                                
-        perror("shm_open");
-        exit(EXIT_FAILURE);
-    }
-
-    if(-1 == ftruncate(fd, size)){
-        perror("ftruncate");
-        exit(EXIT_FAILURE);
-    }
-
-    void * p = mmap(NULL, size, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
-    if(p == MAP_FAILED){
-        perror("mmap");
-        exit(EXIT_FAILURE);
-    }
-
-    return p;
-}
 
 void save_player_path(char * player_path, const int player_count){
     player_paths[player_count] = player_path;
@@ -146,7 +93,7 @@ void init_processes(GameState *game){
                 perror("View binary not accessible");
                 exit(EXIT_FAILURE);
             }
-            char * view_argv[2] = {view_path, NULL};
+            char * view_argv[4] = {view_path, width_string, height_string, NULL};
             char * envp[] = { NULL };
 
             execve(view_path, view_argv, envp);
@@ -207,7 +154,7 @@ int main (int const argc, char * const * argv){
     height_string = DEFAULT_HEIGHT_STRING;
     view_path = NULL;
 
-    GameSync * sync = createSHM("/game_sync", sizeof(GameSync), 0666);
+    GameSync * sync = create_shm("/game_sync", sizeof(GameSync), 0666);
     init_semaphores(sync);
 
     arg_handler(argc, argv);
@@ -224,10 +171,9 @@ int main (int const argc, char * const * argv){
     printf("width: %d\nheight: %d\n", width, height);
 
     size_t size = sizeof(GameState) + width * height * sizeof(int);
-
-    printf("Final size: %zu\n", size);
     
-    GameState * game = createSHM("/game_state", size, 0644);
+    GameState * game = create_shm("/game_state", size, 0644);
+
     init_game_state(game, width, height);
 
     init_board(game, seed);
@@ -243,6 +189,7 @@ int main (int const argc, char * const * argv){
             sem_wait(&sync->print_done);
     }
     sem_post(&sync->game_state_change);
+    
     while(!game->game_over){
         highest_fd = 0;
         FD_ZERO(&read_fds);
@@ -275,45 +222,19 @@ int main (int const argc, char * const * argv){
 
         if(all_players_blocked(game)){
             printf("all players blocked\n");
-            sem_post(&sync->print_needed);
             game->game_over = true;
         } 
 
         
         usleep(delay * 1000);
-    }
-        
-    
-    printf("game is %s over\n", game->game_over? "" : "NOT");
+    }   
 
-    for(unsigned int i = 0; i<game->num_players; i++){
-        printf("player is %s blocked\n", game->players[i].is_blocked ? "" : "NOT");
-    }
+    sem_post(&sync->print_needed);
+    sem_wait(&sync->print_done);
 
-    int wstatus;
-    int returned_pid;
-    for(unsigned int i = 0; i < game->num_players; i++){
-        returned_pid = waitpid(game->players[i].pid, &wstatus, 0);
-        if(returned_pid == -1){
-            printf("WAITPID failed on player (%s) with pid %d\n", game->players[i].name, game->players[i].pid);
-        }
-        if(WIFEXITED(wstatus)){
-            printf("Player %s exited with status (%d)\n", game->players[i].name, wstatus);
-        }
-    }
-
-    if(view_path != NULL){
-        returned_pid = waitpid(view_pid, &wstatus, 0);
-        if(returned_pid == -1){
-            printf("WAITPID failed on view with pid %d\n", view_pid);
-        }
-        if(WIFEXITED(wstatus)){
-            printf("View exited with status (%d)\n", wstatus);
-        }
-    }
+    print_final_state(game, view_path, view_pid);
 
     destroy_and_unlink_semaphores(sync);
-
 
     return 0;
 }

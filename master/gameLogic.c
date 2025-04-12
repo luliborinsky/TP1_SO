@@ -140,3 +140,33 @@ void process_player_move(GameState * game, int player_idx, unsigned char move){
     game->players[player_idx].score += game->board[new_y + game->width + new_x];
     game->board[new_y * game->width + new_x] = 0;
 }
+
+void print_final_state(GameState * game, char * view_path, pid_t view_pid){
+    printf("game is %s over\n", game->game_over? "" : "NOT");
+
+    int wstatus;
+    pid_t returned_pid;
+    Player player;
+    for(unsigned int i = 0; i < game->num_players; i++){
+        player = game->players[i];
+        returned_pid = waitpid(player.pid, &wstatus, 0);
+        if(returned_pid == -1){
+            printf("WAITPID failed on player (%s) with pid %d\n", player.name, player.pid);
+        }
+        if(WIFEXITED(wstatus)){
+            printf("Player %d %s exited with status (%d), score %d / %d / %d %s\n"
+            , i+1, player.name, wstatus, player.score, player.v_moves, player.v_moves, player.is_blocked? "BLOCKED" : "NOT BLOCKED");
+        }
+    }
+
+    if(view_path != NULL){
+        returned_pid = waitpid(view_pid, &wstatus, 0);
+        if(returned_pid == -1){
+            printf("WAITPID failed on view with pid %d\n", view_pid);
+        }
+        if(WIFEXITED(wstatus)){
+            printf("View exited with status (%d)\n", wstatus);
+        }
+    }
+}
+

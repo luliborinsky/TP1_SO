@@ -17,16 +17,32 @@
 #include "../utilities/sync.h"
 #include "gameLogic.h"
 
-void *createSHM(char *name, size_t size, mode_t mode);
+#define MAX_PLAYERS 9
+#define DEFAULT_WIDTH 10
+#define DEFAULT_HEIGHT 10
+#define DEFAULT_WIDTH_STRING "10"
+#define DEFAULT_HEIGHT_STRING "10"
+#define DEFAULT_MS_DELAY 200
+#define DEFAULT_TIMEOUT 10
+#define HANDLE_OK 1
+#define HANDLE_TIMEOUT 0
+#define HANDLE_ERROR -1
+
+char * width_string;
+char * height_string;
+int timeout = DEFAULT_TIMEOUT;
+int delay = DEFAULT_MS_DELAY;
+char * view_path;
+pid_t view_pid;
+unsigned int seed;
+char * player_paths[10]; //NULL TERMINATED
+fd_set read_fds;
+int highest_fd;
+int current_player = 0;
+int player_pipes[MAX_PLAYERS][2];
+
 void save_player_path(char *player_path, const int player_count);
 void arg_handler(const int argc, char *const *argv);
 void init_processes(GameState *game);
-void init_board(GameState *game, unsigned int seed);
-void init_game_state(GameState *game, int width, int height);
-int handle_moves(GameState *game, struct timeval *timeout, unsigned char *player_moves);
-void process_player_move(GameState *game, int player_idx, unsigned char move);
-bool has_available_moves(GameState *game, int player_idx);
-bool valid_move(GameState *game, int x, int y);
-bool all_players_blocked(GameState *game);
 
 #endif 

@@ -2,38 +2,23 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
 #include "commonHeaders.h"
+#include "utilities/sync.h"
 #define TRUE 1
 
 
 
-int main(){
-    int game_state_fd = shm_open("/game_state", O_RDONLY, 0);
-    if (game_state_fd == -1){
-        perror("shm_open game_state");
+int main(int argc, char * argv[]){
+    if(argc > 4) {
+        perror("player recieved too many arguments");
         exit(EXIT_FAILURE);
     }
+    int width = atoi(argv[1]);
+    int height = atoi(argv[2]);
+    size_t size = sizeof(GameState) + width * height * sizeof(int);
 
-    GameState temp_game;
-    read(game_state_fd, &temp_game, sizeof(GameState));
-    size_t game_size = sizeof(GameState) + temp_game.width * temp_game.height * sizeof(int);
+    GameState *game = open_existing_shm("/game_state", size, O_RDONLY);
 
-    GameState *game = (GameState *) mmap(NULL, game_size, PROT_READ, MAP_SHARED, game_state_fd, 0);
-    if (game == MAP_FAILED) {
-        perror("mmap game_state");
-        exit(EXIT_FAILURE);
-    }
-
-    int shm_sync_fd = shm_open("/game_sync", O_RDWR, 0);
-    if (shm_sync_fd == -1) {
-        perror("shm_open sync");
-        exit(EXIT_FAILURE);
-    }
-
-    GameSync *sync = (GameSync *) mmap(NULL, sizeof(GameSync), PROT_READ | PROT_WRITE, MAP_SHARED, shm_sync_fd, 0);
-    if (sync == MAP_FAILED) {
-        perror("mmap sync");
-        exit(EXIT_FAILURE);
-    }
+    GameSync *sync = open_existing_shm("/game_sync", sizeof(GameSync), O_RDWR);
 
     int player_idx = 0;
     while(player_idx < 9 && getpid() != game->players[player_idx].pid){
