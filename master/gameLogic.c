@@ -24,7 +24,6 @@ void init_board(GameState *game, unsigned int seed){
         game->players[i].x = x_center;
         game->players[i].y = y_center;
         game->board[y_center * game->width + x_center] = 0;
-        printf("player %d on x=%d y=%d\n", i, x_center, y_center);
     }
 }
 
@@ -139,6 +138,15 @@ void process_player_move(GameState * game, int player_idx, unsigned char move){
     game->players[player_idx].y = new_y;
     game->players[player_idx].score += game->board[new_y + game->width + new_x];
     game->board[new_y * game->width + new_x] = 0;
+}
+
+void initial_print(GameState * game, int width, int height, int delay, int timeout, int seed, char * view_path){
+    printf("width: %d\nheight: %d\ndelay: %d\ntimeout: %d\nseed: %d\nview: %s\nnum_players: %d\n",
+            width, height, delay, timeout, seed, view_path, game->num_players);
+    for(unsigned int i = 0; i<game->num_players; i++){
+        printf("\t%s\n", game->players[i].name);
+    }
+    sleep(1);
 }
 
 void print_final_state(GameState * game, char * view_path, pid_t view_pid){

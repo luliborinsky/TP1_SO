@@ -167,8 +167,6 @@ int main (int const argc, char * const * argv){
 
     int width = atoi(width_string);
     int height = atoi(height_string);
-    
-    printf("width: %d\nheight: %d\n", width, height);
 
     size_t size = sizeof(GameState) + width * height * sizeof(int);
     
@@ -183,6 +181,8 @@ int main (int const argc, char * const * argv){
     unsigned char player_moves[9];
     sync->readers = 0;
     //for first loop
+
+    initial_print(game, width, height, delay, timeout, seed, view_path);
 
     if(view_path != NULL){
             sem_post(&sync->print_needed);
@@ -229,8 +229,10 @@ int main (int const argc, char * const * argv){
         usleep(delay * 1000);
     }   
 
-    sem_post(&sync->print_needed);
-    sem_wait(&sync->print_done);
+    if(view_path != NULL){
+        sem_post(&sync->print_needed);
+        sem_wait(&sync->print_done);
+    }
 
     print_final_state(game, view_path, view_pid);
 

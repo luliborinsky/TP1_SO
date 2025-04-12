@@ -12,5 +12,6 @@ bool valid_move(GameState *game, int x, int y);
 bool has_available_moves(GameState *game, int player_idx);
 void process_player_move(GameState *game, int player_idx, unsigned char move);
 void print_final_state(GameState * game, char * view_path, pid_t view_pid);
+void initial_print(GameState * game, int width, int height, int delay, int timeout, int seed, char * view_path);
 
 #endif
