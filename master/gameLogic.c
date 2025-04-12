@@ -150,7 +150,6 @@ void initial_print(GameState * game, int width, int height, int delay, int timeo
 }
 
 void print_final_state(GameState * game, char * view_path, pid_t view_pid){
-    printf("game is %s over\n", game->game_over? "" : "NOT");
 
     int wstatus;
     pid_t returned_pid;

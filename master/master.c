@@ -89,7 +89,7 @@ int main (int const argc, char * const * argv){
         }
 
         if(all_players_blocked(game)){
-            printf("all players blocked\n");
+        
             game->game_over = true;
         } 
 
