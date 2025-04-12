@@ -18,14 +18,17 @@ all: $(BIN_DIR) $(TARGETS)
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-$(BIN_DIR)/master: master.c | $(BIN_DIR)
-	$(CC) $(CFLAGS) master.c -o $@ $(LDFLAGS)
+$(BIN_DIR)/master: master/master.c master/gameLogic.c utilities/sync.c commonHeaders.h master/master.h master/gameLogic.h utilities/sync.h
+	$(CC) $(CFLAGS) master/master.c master/gameLogic.c utilities/sync.c -o $@ $(LDFLAGS)
 
-$(BIN_DIR)/player: player.c | $(BIN_DIR)
-	$(CC) $(CFLAGS) player.c -o $@ $(LDFLAGS)
 
-$(BIN_DIR)/view: view.c | $(BIN_DIR)
-	$(CC) $(CFLAGS) view.c -o $@ $(LDFLAGS)
+# Compile player binary
+$(BIN_DIR)/player: player.c utilities/sync.c commonHeaders.h utilities/sync.h
+	$(CC) $(CFLAGS) player.c utilities/sync.c -o $@ $(LDFLAGS)
+
+# Compile view binary
+$(BIN_DIR)/view: view.c utilities/sync.c commonHeaders.h utilities/sync.h
+	$(CC) $(CFLAGS) view.c utilities/sync.c -o $@ $(LDFLAGS)
 
 clean:
 	rm -f $(TARGETS)

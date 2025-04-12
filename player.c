@@ -1,17 +1,7 @@
 // This is a personal academic project. Dear PVS-Studio, please check it. 
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <semaphore.h>
-#include <unistd.h>
-#include <errno.h>
-#include <stdbool.h>
-#include <time.h>
-#include <string.h>
-#include "master.h"
+#include "commonHeaders.h"
 #define TRUE 1
 
 

@@ -1,5 +1,5 @@
-#ifndef MASTER_H
-#define MASTER_H
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,7 +10,24 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
+#include <math.h>
 
+#define MAX_PLAYERS 9
+#define DEFAULT_WIDTH 10
+#define DEFAULT_HEIGHT 10
+#define DEFAULT_WIDTH_STRING "10"
+#define DEFAULT_HEIGHT_STRING "10"
+#define DEFAULT_MS_DELAY 200
+#define DEFAULT_TIMEOUT 10
+#define HANDLE_OK 1
+#define HANDLE_TIMEOUT 0
+#define HANDLE_ERROR -1
+
+extern char * player_paths[10];
+extern fd_set read_fds;
+extern int highest_fd;
+extern int player_pipes[MAX_PLAYERS][2];
 
 typedef struct Player{
     char name[16]; // Nombre del jugador
