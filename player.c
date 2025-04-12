@@ -69,5 +69,6 @@ int main(int argc, char * argv[]){
         }
     }
 
+    close_shm();
     return 0;
 }

@@ -234,7 +234,7 @@ int main (int const argc, char * const * argv){
 
     print_final_state(game, view_path, view_pid);
 
-    destroy_and_unlink_semaphores(sync);
+    destroy_shm(sync, game, size);
 
     return 0;
 }

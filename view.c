@@ -4,8 +4,6 @@
 
 #include "commonHeaders.h"
 #include "utilities/sync.h"
-#define SHM_game "/game_state"
-#define SHM_SYNC "/game_sync"
 #define TRUE 1
 #define FALSE 0
 
@@ -50,6 +48,6 @@ int main(int argc, char * argv[]) {
         printf("\n");
     }
 
-    
+    close_shm();
     return 0;
 }
