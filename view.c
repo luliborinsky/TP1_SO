@@ -22,7 +22,6 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: %s <width> <height>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
-
     int width = atoi(argv[1]);
     int height = atoi(argv[2]);
     size_t size = sizeof(GameState) - sizeof(int) + (width * height * sizeof(int));
@@ -30,13 +29,27 @@ int main(int argc, char *argv[]) {
     GameState *game = open_existing_shm("/game_state", size, O_RDONLY);
     GameSync *sync = open_existing_shm("/game_sync", sizeof(GameSync), O_RDWR);
 
+    int *local_board = malloc(width * height * sizeof(int)); 
+    if(local_board == NULL) { 
+        perror("Failed to allocate memory for local board");
+        exit(EXIT_FAILURE);
+    }
+    memset(local_board, 0, width * height * sizeof(int)); 
+
+    if(!local_board) {
+        perror("Failed to allocate memory for local board");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(local_board, 0, width * height * sizeof(int));
+
     printf("\n🎮 ==================== WELCOME TO CHOMCHAMPS ==================== 🎮\n");
  
     printf("Game Board (Width: %d, Height: %d)\n\n", width, height);
 
     while (!game->game_over) {
         sem_wait(&sync->print_needed);
-        
+
        
         printf("\033[1;33m┌");
         for (int i = 0; i < width * 2; i++) printf("─");
@@ -51,6 +64,8 @@ int main(int argc, char *argv[]) {
                 for (unsigned int p = 0; p < game->num_players; p++) {
                     if (game->players[p].x == j && game->players[p].y == i) {
                         
+                        local_board[i * game->width + j] = p + 1; 
+
                         printf("%s#" RESET " ", player_colors[p]);
                         printed = true;
                         break;
@@ -59,17 +74,12 @@ int main(int argc, char *argv[]) {
                 
                 if (!printed) {
                     int cell = game->board[i * game->width + j];
-                    if (cell > 0) {
+                    int local_cell = local_board[i * game->width + j];
+                    if (local_cell == 0) {
                         // Reward 
                         printf(GREEN "%d " RESET, cell);
-                    } else if (cell < 0) {
-                       
-                        int player_id = (-cell) - 1;
-                        if (player_id >= 0 && player_id < game->num_players) {
-                            printf("%s#" RESET " ", player_colors[player_id]);
-                        } else {
-                            printf(WHITE "#" RESET " ");
-                        }
+                    } else if (local_cell > 0) {
+                        printf("%s#" RESET " ", player_colors[local_cell - 1]);
                     } else {
                         
                         printf(WHITE "#" RESET " ");
@@ -78,6 +88,7 @@ int main(int argc, char *argv[]) {
             }
             printf("\033[1;33m│\033[0m\n");
         }
+
 
        
         printf("\033[1;33m└");
