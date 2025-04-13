@@ -1,5 +1,7 @@
-#include "gameLogic.h"
+// This is a personal academic project. Dear PVS-Studio, please check it. 
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
 
+#include "gameLogic.h"
 
 void init_board(GameState *game, unsigned int seed){
     srand(seed);
@@ -42,7 +44,7 @@ void init_game_state(GameState * game, int width, int height){
     }
 
     Player p;
-    while(player_paths[game->num_players] != NULL && game->num_players < 10){
+    while(player_paths[game->num_players] != NULL){
         strncpy(p.name, player_paths[game->num_players], sizeof(p.name) - 1);
 
         p.name[sizeof(p.name) - 1] = '\0';

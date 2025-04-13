@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it. 
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "commonHeaders.h"
 #include "utilities/sync.h"
 
@@ -50,6 +53,9 @@ int main(int argc, char *argv[]) {
     while (!game->game_over) {
         sem_wait(&sync->print_needed);
 
+        if(game->game_over){
+            break;
+        }
        
         printf("\033[1;33m┌");
         for (int i = 0; i < width * 2; i++) printf("─");
@@ -66,7 +72,7 @@ int main(int argc, char *argv[]) {
                         
                         local_board[i * game->width + j] = p + 1; 
 
-                        printf("%s#" RESET " ", player_colors[p]);
+                        printf("%s$" RESET " ", player_colors[p]);
                         printed = true;
                         break;
                     }
@@ -109,7 +115,6 @@ int main(int argc, char *argv[]) {
         sem_post(&sync->print_done);
     }
 
-   
     printf("\n\n");  
     printf("🎮 ==================== GAME OVER ==================== 🎮\n\n");
     printf("Final Scores (Ranked):\n");
@@ -183,7 +188,7 @@ int main(int argc, char *argv[]) {
 
     
     sem_post(&sync->print_done);
-
+    free(local_board);
     close_shm();
     return 0;
 } 

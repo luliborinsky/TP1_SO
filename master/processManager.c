@@ -1,7 +1,13 @@
+// This is a personal academic project. Dear PVS-Studio, please check it. 
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "processManager.h"
 
-
 void save_player_path(char * player_path, const int player_count){
+    if (access(player_path, X_OK) == -1) {
+        perror("Player binary not accessible");
+        exit(EXIT_FAILURE);
+    }
     player_paths[player_count] = player_path;
 }
 
@@ -37,6 +43,7 @@ void arg_handler(const int argc, char * const* argv){
 
             case 'p':{
                 save_player_path(optarg, player_count++);
+                optind--;
                 while(optind < argc && player_count < MAX_PLAYERS){
                     
                     if(argv[optind][0] == '-') break;
@@ -44,7 +51,7 @@ void arg_handler(const int argc, char * const* argv){
                     save_player_path(argv[optind++], player_count++);
                 }
                 if(player_count > 9){
-                    perror("more than 9 players");
+                    perror("too many players");
                     exit(EXIT_FAILURE);
                 }
                 player_paths[player_count] = NULL;
@@ -73,7 +80,9 @@ void arg_handler(const int argc, char * const* argv){
         }   
     }
     if(player_count == 0){
-        perror("ERROR: There are no players");
+        fprintf(stderr,
+            "Usage: %s [-w width] [-p player_paths (MAX 9)] [-h height] [-d delay (ms)] [-t timeout (s)] [-s seed] [-v view_path] \n",
+            argv[0]);
         exit(EXIT_FAILURE);
     }
 }
@@ -85,11 +94,11 @@ void init_processes(GameState *game){
             perror("View fork error");
             exit(EXIT_FAILURE);
         }
+        if(access(view_path, X_OK) == -1){
+            perror("View binary not accessible");
+            exit(EXIT_FAILURE);
+        }
         if (view_pid == 0){
-            if(access(view_path, X_OK) == -1){
-                perror("View binary not accessible");
-                exit(EXIT_FAILURE);
-            }
             char * view_argv[4] = {view_path, width_string, height_string, NULL};
             char * envp[] = { NULL };
 
@@ -98,6 +107,7 @@ void init_processes(GameState *game){
             exit(EXIT_FAILURE);
         }
     }
+      
     //pipes for child comm
     for(unsigned int i = 0; i < game->num_players; i++){
         if(pipe(player_pipes[i]) == -1){
@@ -123,11 +133,6 @@ void init_processes(GameState *game){
             close(player_pipes[i][1]);
 
             char *player_path = game->players[i].name; 
-
-            if (access(player_path, X_OK) == -1) {
-                perror("Player binary not accessible");
-                exit(EXIT_FAILURE);
-            }
             
             char *player_argv[4] = {player_path, width_string, height_string, NULL};
             char *envp[] = { NULL };
@@ -138,7 +143,6 @@ void init_processes(GameState *game){
         }
         game->players[i].pid = player_pid;
     }
-        
     for(unsigned int j = 0; j < game->num_players; j++){    
         close(player_pipes[j][1]);
     }
