@@ -36,8 +36,8 @@ extern int delay;
 extern char * view_path;
 extern pid_t view_pid;
 extern unsigned int seed;
-extern char * player_paths[10]; //NULL TERMINATED
-extern fd_set read_fds;
+extern char * player_paths[10]; 
+// extern fd_set read_fds;
 extern int highest_fd;
 extern int current_player;
 extern int player_pipes[MAX_PLAYERS][2];

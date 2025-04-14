@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
                         
                         local_board[i * game->width + j] = p + 1; 
 
-                        printf("%s$" RESET " ", player_colors[p]);
+                        printf("%s■" RESET " ", player_colors[p]);
                         printed = true;
                         break;
                     }
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
                         // Reward 
                         printf(GREEN "%d " RESET, cell);
                     } else if (local_cell > 0) {
-                        printf("%s#" RESET " ", player_colors[local_cell - 1]);
+                        printf("%s▪" RESET " ", player_colors[local_cell - 1]);
                     } else {
                         
                         printf(WHITE "#" RESET " ");
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < width * 2; i++) printf("─");
         printf("┘\033[0m\n\n");
 
-        // Print player stats
+       
         printf("Player Statistics:\n");
         printf("-----------------\n");
         for (unsigned int i = 0; i < game->num_players; i++) {
@@ -125,13 +125,13 @@ int main(int argc, char *argv[]) {
         int score;
     } PlayerScore;
     
-    PlayerScore scores[9];  // Max 9 players
+    PlayerScore scores[9];  
     for (unsigned int i = 0; i < game->num_players; i++) {
         scores[i].player_id = i;
         scores[i].score = game->players[i].score;
     }
     
-    // Sort scores 
+    
     for (unsigned int i = 0; i < game->num_players - 1; i++) {
         for (unsigned int j = 0; j < game->num_players - i - 1; j++) {
             if (scores[j].score < scores[j + 1].score) {
@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
         winner_count++;
     }
     
-    // Print winner(s) and scores 
+    
     printf("\n🏆 ");
     if (winner_count == 1) {
         printf("WINNER: %sPlayer %d%s with %d points!", 

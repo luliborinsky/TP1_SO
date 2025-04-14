@@ -43,7 +43,6 @@ void arg_handler(const int argc, char * const* argv){
 
             case 'p':{
                 save_player_path(optarg, player_count++);
-                optind--;
                 while(optind < argc && player_count < MAX_PLAYERS){
                     
                     if(argv[optind][0] == '-') break;
@@ -103,7 +102,7 @@ void init_processes(GameState *game){
             char * envp[] = { NULL };
 
             execve(view_path, view_argv, envp);
-            perror("execve failed"); // THIS LINE ONLY EXECUTES IF EXECVE FAILS
+            perror("execve failed"); 
             exit(EXIT_FAILURE);
         }
     }
@@ -125,7 +124,7 @@ void init_processes(GameState *game){
         }
 
         if(player_pid == 0){
-            close(player_pipes[i][0]); //close read-end
+            close(player_pipes[i][0]); 
             if(dup2(player_pipes[i][1], STDOUT_FILENO) == -1){
                 perror("dup failed");
                 exit(EXIT_FAILURE);
@@ -133,12 +132,11 @@ void init_processes(GameState *game){
             close(player_pipes[i][1]);
 
             char *player_path = game->players[i].name; 
-            
             char *player_argv[4] = {player_path, width_string, height_string, NULL};
             char *envp[] = { NULL };
 
             execve(player_path, player_argv, envp);
-            perror("execve failed"); // THIS LINE ONLY EXECUTES IF EXECVE FAILS
+            perror("execve failed"); 
             exit(EXIT_FAILURE);
         }
         game->players[i].pid = player_pid;
