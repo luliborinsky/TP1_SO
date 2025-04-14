@@ -31,10 +31,16 @@ int to_center(GameState * game, int best, int best_2, int x, int y){
     if(p1x < p2x){
         if(p1y < p2y || last_center == 'y'){
             last_center = 'x';
-            return best_2;
+            return best;
         }
-    } 
+        last_center = 'y';
+        return best_2;
+    }
 
+    if(p2y < p1y){
+        return best_2; 
+    }
+    
     last_center = 'y';
     return best;
 }
@@ -44,7 +50,7 @@ int determine_move(GameState * game, int player_idx){
     int y = game->players[player_idx].y;
 
     int points = 0, highest_points = 0;
-    int best_move = -1;
+    int best_move = 0;
     for(int i = 0; i < 8; i++){
         int new_x = x + dir_x[i];
         int new_y = y + dir_y[i];
@@ -61,11 +67,6 @@ int determine_move(GameState * game, int player_idx){
         else if (points == highest_points){
             best_move = to_center(game, best_move, i, x, y);
         }
-    }
-
-    if(best_move == -1){
-        perror("couldnt determine move");
-        exit(EXIT_FAILURE);
     }
     return best_move;
 }

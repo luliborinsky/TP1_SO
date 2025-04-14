@@ -49,8 +49,12 @@ int main (int const argc, char * const * argv){
     initial_print(game, width, height, delay, timeout, seed, view_path);
 
     init_processes(game);
+
+    //one player per turn
     unsigned int k = 0;
     fd_set read_fds[game->num_players];
+    
+    sem_post(&sync->game_state_change);
 
     while(!game->game_over){
         
@@ -65,7 +69,6 @@ int main (int const argc, char * const * argv){
         
         usleep(delay * 1000);
 
-        printf("%d\n", k+1);
         FD_ZERO(&read_fds[k]);
         FD_SET(player_pipes[k][0], &read_fds[k]);
         highest_fd = player_pipes[k][0] + 1;
