@@ -6,17 +6,17 @@
 void init_semaphores(GameSync * sync){
     sem_init(&sync->print_needed, 1, 1);
     sem_init(&sync->print_done, 1, 0);
-    sem_init(&sync->master_utd, 1, 1);
+    sem_init(&sync->turnstile, 1, 1);
     sem_init(&sync->game_state_change, 1, 1);
-    sem_init(&sync->sig_var, 1, 1);
+    sem_init(&sync->readers_critical_section, 1, 1);
 }
 
 void destroy_shm(GameSync * sync, GameState * game, size_t game_size){
     sem_destroy(&sync->print_needed);
     sem_destroy(&sync->print_done);
-    sem_destroy(&sync->master_utd);
+    sem_destroy(&sync->turnstile);
     sem_destroy(&sync->game_state_change);
-    sem_destroy(&sync->sig_var);
+    sem_destroy(&sync->readers_critical_section);
 
     munmap(sync, sizeof(GameSync));
     munmap(game, game_size);

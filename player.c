@@ -10,7 +10,6 @@ int dir_y[8] = {-1, -1, 0, 1, 1, 1, 0, -1};
 char last_center = 'y';
 
 int to_center(GameState * game, int best, int best_2, int x, int y){
-    // perror("on to_center()");
     int center_x = game->width / 2;
     int center_y = game->height / 2;
 
@@ -97,27 +96,27 @@ int main(int argc, char * argv[]){
     unsigned int moves = 0;
     while(!game->game_over){
         
-        sem_wait(&sync->master_utd);
-        sem_post(&sync->master_utd);
-        sem_wait(&sync->sig_var);
+        sem_wait(&sync->turnstile);
+        sem_post(&sync->turnstile);
+        sem_wait(&sync->readers_critical_section);
         
         sync->readers++;
         if (sync->readers == 1) {
             sem_wait(&sync->game_state_change);  
         }
-        sem_post(&sync->sig_var);
+        sem_post(&sync->readers_critical_section);
 
         int game_finished = game->game_over || game->players[player_idx].is_blocked;        
         int ready = (moves == game->players[player_idx].v_moves + game->players[player_idx].inv_moves);
         
 
         // End of read
-        sem_wait(&sync->sig_var);
+        sem_wait(&sync->readers_critical_section);
         sync->readers--;
         if (sync->readers == 0) {
             sem_post(&sync->game_state_change);  
         }
-        sem_post(&sync->sig_var);
+        sem_post(&sync->readers_critical_section);
 
         if(game_finished) return 0;
         

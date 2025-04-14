@@ -50,9 +50,9 @@ typedef struct{
 typedef struct {
     sem_t print_needed; 
     sem_t print_done; 
-    sem_t master_utd;
+    sem_t turnstile;
     sem_t game_state_change; 
-    sem_t sig_var; 
+    sem_t readers_critical_section; 
     unsigned int readers; 
 } GameSync;
 

@@ -70,9 +70,9 @@ int main (int const argc, char * const * argv){
         FD_SET(player_pipes[k][0], &read_fds[k]);
         highest_fd = player_pipes[k][0] + 1;
         
-        sem_wait(&sync->master_utd);
+        sem_wait(&sync->turnstile);
         sem_wait(&sync->game_state_change);
-        sem_post(&sync->master_utd);
+        sem_post(&sync->turnstile);
 
         for(unsigned int i = 0; i < game->num_players; i++){
             if(!has_available_moves(game, i)){
