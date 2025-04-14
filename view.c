@@ -39,13 +39,6 @@ int main(int argc, char *argv[]) {
     }
     memset(local_board, 0, width * height * sizeof(int)); 
 
-    if(!local_board) {
-        perror("Failed to allocate memory for local board");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(local_board, 0, width * height * sizeof(int));
-
     printf("\n🎮 ==================== WELCOME TO CHOMCHAMPS ==================== 🎮\n");
  
     printf("Game Board (Width: %d, Height: %d)\n\n", width, height);
