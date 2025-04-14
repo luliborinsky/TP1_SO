@@ -8,10 +8,9 @@ docker pull agodio/itba-so-multi-platform:3.0
 
 docker run -v "${PWD}:/root" --privileged -ti agodio/itba-so-multi-platform:3.0
 
-bpftrace -e/-lv ' profile:hz:99 / tracepoint:syscalss:sys_enter(exit)_openat {@[comm,kstack()]=count()} / {printf()/@b=hist(args->ret)} interval:s:2 {exit()}'
+#### MAKEFILE CMDS
 
-#### PVS-Studio
-make clean
-pvs-studio-analyzer trace -- make
-pvs-studio-analyzer analyze --file compile_commands.json -o PVS-Studio.log
-plog-converter -a GA:1,2 -t json PVS-Studio.log -o report/
+make **__compiles everithing__**
+make run **__runs the "run" configured__**
+make analysis **__runs PVS-Studio on all compiled files__**
+make clean **__removes /bin ; /analysis ; and the created compile_commands.json__**
