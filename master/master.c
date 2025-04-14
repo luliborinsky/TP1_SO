@@ -11,7 +11,6 @@ char *view_path = NULL;
 pid_t view_pid = -1;
 unsigned int seed = 0;
 char *player_paths[10] = {NULL}; // Initialize to NULL
-fd_set read_fds;
 int highest_fd = 0;
 int current_player = 0;
 int player_pipes[MAX_PLAYERS][2];
@@ -44,65 +43,64 @@ int main (int const argc, char * const * argv){
 
     init_board(game, seed);
 
-    init_processes(game);
-
     unsigned char player_moves[9];
     sync->readers = 0;
-    //for first loop
 
     initial_print(game, width, height, delay, timeout, seed, view_path);
 
-    if(view_path != NULL){
-            sem_post(&sync->print_needed);
-            sem_wait(&sync->print_done);
-    }
-    sem_post(&sync->game_state_change);
-    
+    init_processes(game);
+    unsigned int k = 0;
+    fd_set read_fds[game->num_players];
+
     while(!game->game_over){
-        highest_fd = 0;
-        FD_ZERO(&read_fds);
-        for(unsigned int i = 0; i < game->num_players; i++){
-            FD_SET(player_pipes[i][0], &read_fds);
-            if(player_pipes[i][0] >= highest_fd) {
-                highest_fd = player_pipes[i][0] + 1;
-            }
-        }
-
-        if(handle_moves(game, &tv, player_moves)){
-            printf("handle_moves error\n");
-            game->game_over = true;
-        }
         
-        sem_wait(&sync->master_utd);
-        sem_wait(&sync->game_state_change);
-        sem_post(&sync->master_utd);
-
-        for (unsigned int i = 0; i<game->num_players; i++){
-            process_player_move(game, i, player_moves[i]);
-        }
-
-        sem_post(&sync->game_state_change);
-
         if(view_path != NULL){
             sem_post(&sync->print_needed);
             sem_wait(&sync->print_done);
         }
 
         if(all_players_blocked(game)){
-        
             game->game_over = true;
         } 
-
         
         usleep(delay * 1000);
+
+        printf("%d\n", k+1);
+        FD_ZERO(&read_fds[k]);
+        FD_SET(player_pipes[k][0], &read_fds[k]);
+        highest_fd = player_pipes[k][0] + 1;
+        
+        sem_wait(&sync->turnstile);
+        sem_wait(&sync->game_state_change);
+        sem_post(&sync->turnstile);
+
+        for(unsigned int i = 0; i < game->num_players; i++){
+            if(!has_available_moves(game, i)){
+                game->players[i].is_blocked = true;
+            }
+        }
+        if(!game->players[k].is_blocked){
+            if(handle_moves(game, &tv, player_moves, &read_fds[k], k) == -1){
+                printf("timeout of player %d\n", k+1);
+                game->game_over = true;
+            }
+        }
+        
+        k = (k+1) % game->num_players;
+
+        sem_post(&sync->game_state_change);
+
+        
     }   
 
     if(view_path != NULL){
         sem_post(&sync->print_needed);
         sem_wait(&sync->print_done);
     }
-
-    print_final_state(game, view_path, view_pid);
+    else{
+        print_final_state(game, view_path, view_pid);
+    }
+    
 
     destroy_shm(sync, game, size);
 

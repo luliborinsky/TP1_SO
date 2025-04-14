@@ -36,10 +36,11 @@ clean:
 	rm -f strace_out compile_commands.json
 
 run: all
-	./$(BIN_DIR)/master -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player -v ./$(BIN_DIR)/view
+	./$(BIN_DIR)/master -d 0 -p ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player ./$(BIN_DIR)/player -v ./$(BIN_DIR)/view
 
 # Generate compile_commands.json (for PVS)
 compile_commands.json:
+	apt install bear
 	bear -- make clean all  # Ensures JSON includes fresh build data
 
 # PVS-Studio Static Analysis

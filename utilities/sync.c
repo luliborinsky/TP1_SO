@@ -1,19 +1,22 @@
+// This is a personal academic project. Dear PVS-Studio, please check it. 
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "sync.h"
 
 void init_semaphores(GameSync * sync){
-    sem_init(&sync->print_needed, 1, 0);
+    sem_init(&sync->print_needed, 1, 1);
     sem_init(&sync->print_done, 1, 0);
-    sem_init(&sync->master_utd, 1, 1);
+    sem_init(&sync->turnstile, 1, 1);
     sem_init(&sync->game_state_change, 1, 1);
-    sem_init(&sync->sig_var, 1, 1);
+    sem_init(&sync->readers_critical_section, 1, 1);
 }
 
 void destroy_shm(GameSync * sync, GameState * game, size_t game_size){
     sem_destroy(&sync->print_needed);
     sem_destroy(&sync->print_done);
-    sem_destroy(&sync->master_utd);
+    sem_destroy(&sync->turnstile);
     sem_destroy(&sync->game_state_change);
-    sem_destroy(&sync->sig_var);
+    sem_destroy(&sync->readers_critical_section);
 
     munmap(sync, sizeof(GameSync));
     munmap(game, game_size);
@@ -66,4 +69,14 @@ void * open_existing_shm(char * name, size_t size, int permissions){
         exit(EXIT_FAILURE);
     }
     return shm;
+}
+
+bool valid_move(GameState * game, int x, int y){
+    if(x < 0 || x >= game->width || y < 0 || y >= game->height){
+        return false;
+    }
+    if(game->board[y * game->width + x] > 0) {
+        return true;
+    }
+    return false;
 }
