@@ -124,24 +124,28 @@ void init_processes(GameState *game){
         }
 
         if(player_pid == 0){
-            close(player_pipes[i][0]); 
             if(dup2(player_pipes[i][1], STDOUT_FILENO) == -1){
                 perror("dup failed");
                 exit(EXIT_FAILURE);
             }
-            close(player_pipes[i][1]);
 
             char *player_path = game->players[i].name; 
             char *player_argv[4] = {player_path, width_string, height_string, NULL};
             char *envp[] = { NULL };
+
+            //closes unused pipes for all players // maybe pipes should be created elsewhere so each player doesnt have the pipes of all the players initially
+            for(unsigned int j = 0; j < game->num_players; j++){
+                close(player_pipes[j][0]);
+                close(player_pipes[j][1]);
+            }
 
             execve(player_path, player_argv, envp);
             perror("execve failed"); 
             exit(EXIT_FAILURE);
         }
         game->players[i].pid = player_pid;
-    }
-    for(unsigned int j = 0; j < game->num_players; j++){    
-        close(player_pipes[j][1]);
+
+        //close write end master
+        close(player_pipes[i][1]);
     }
 }
