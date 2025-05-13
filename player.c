@@ -95,41 +95,42 @@ int main(int argc, char * argv[]){
 
     srand(time(NULL));
     unsigned int moves = 0;
+    int last_sum_valid_invalid = -1;
+    int current_sum_valid_invalid;
     while(!game->game_over){
         
         sem_wait(&sync->turnstile);
         sem_post(&sync->turnstile);
-        sem_wait(&sync->readers_critical_section);
         
-        sync->readers++;
-        if (sync->readers == 1) {
-            sem_wait(&sync->game_state_change);  
-        }
-        sem_post(&sync->readers_critical_section);
+        do {
+            if(game->game_over) break;
 
-        int game_finished = game->game_over || game->players[player_idx].is_blocked;        
-        int ready = (moves == game->players[player_idx].v_moves + game->players[player_idx].inv_moves);
-        
-
-        // End of read
-        sem_wait(&sync->readers_critical_section);
-        sync->readers--;
-        if (sync->readers == 0) {
-            sem_post(&sync->game_state_change);  
-        }
-        sem_post(&sync->readers_critical_section);
-
-        if(game_finished) return 0;
-        
-
-        if(ready){
-            unsigned char move = determine_move(game, player_idx);
-            if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
-                perror("write movimiento");
-                exit(EXIT_FAILURE);
+            sem_wait(&sync->readers_critical_section);
+            sync->readers++;
+            if (sync->readers == 1) {
+                sem_wait(&sync->game_state_change);  
             }
-            moves++;
+            sem_post(&sync->readers_critical_section);
+
+            current_sum_valid_invalid = game->players[player_idx].v_moves + game->players[player_idx].inv_moves;
+        
+            // End of read
+            sem_wait(&sync->readers_critical_section);
+            sync->readers--;
+            if (sync->readers == 0) {
+                sem_post(&sync->game_state_change);  
+            }
+            sem_post(&sync->readers_critical_section);
+
+        } while (current_sum_valid_invalid == last_sum_valid_invalid);
+        last_sum_valid_invalid = current_sum_valid_invalid;
+
+        unsigned char move = determine_move(game, player_idx);
+        if (write(STDOUT_FILENO, &move, sizeof(move)) == -1) {
+            perror("write movimiento");
+            exit(EXIT_FAILURE);
         }
+        moves++;
     }
 
     close_shm();
