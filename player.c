@@ -94,7 +94,6 @@ int main(int argc, char * argv[]){
     }
 
     srand(time(NULL));
-    unsigned int moves = 0;
     int last_sum_valid_invalid = -1;
     int current_sum_valid_invalid;
     while(!game->game_over){
@@ -130,7 +129,6 @@ int main(int argc, char * argv[]){
             perror("write movimiento");
             exit(EXIT_FAILURE);
         }
-        moves++;
     }
 
     close_shm();
